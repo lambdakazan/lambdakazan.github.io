@@ -1,0 +1,1060 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>Блог Lambdasoft: последние записи</title>
+        <link>http://lambdasoft.ru</link>
+        <description><![CDATA[Последние записи из мира ФП в Казани]]></description>
+        <atom:link href="http://lambdasoft.ru/tags/purescript.xml" rel="self"
+                   type="application/rss+xml" />
+        <lastBuildDate>Tue, 27 Dec 2016 00:00:00 UT</lastBuildDate>
+        <item>
+    <title>Трансдьюсеры в Clojure</title>
+    <link>http://lambdasoft.ru/posts/2016-12-27--transducers-and-haskell.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>В процессе работы мы попробовали использовать трансдьюсеры (комбинируемые алгоритмические преобразования) для одной из задач и у нас появилась проблема, причём похожий вопрос на StackOverflow висит уже год, и в нём нет принятого ответа. В этом посте я попробую описать эту проблему с трансдьюсерами, её решения и то, как</p>
+<!--more-->
+<h1 id="что-такое-трансдьюсеры">Что такое трансдьюсеры?</h1>
+<p>Как указано на <a href="http://clojure.org/reference/transducers">странице трансдьюсеров</a>, это комбинируемые алгоритмические преобразования.</p>
+<p>Мы задаём отдельные шаги, например, применить к каждому элементу какую-либо функцию, оставить только элементы, удовлетворяющие предикату, отбросить пять первых элементов и т.п., а затем собираем эти шаги в единый трансдьюсер. При помощи стандартных функций <code>map</code>, <code>filter</code> и т.п. можно создавать трансдьюсеры, задающие отдельные шаги. Далее трансдьюсеры можно соединять с другими трансдьюсерами, применять их к каким-либо коллекциям и получать новые (при помощи функций <code>into</code> и <code>sequence</code>), применять их к коллекциям и выполнять свёртку по результату (при помощи <code>transduce</code> и <code>eduction</code>) и т.п.</p>
+<h2 id="простой-пример">Простой пример</h2>
+<p>Рассмотрим пример. Пусть у нас есть вектор векторов. В каждом внутреннем векторе чётное количество элементов. Нужно из каждого внутреннего вектора выбрать элементы, стоящие на чётных позициях, и из них выбрать максимальный.</p>
+<p>Например, на входе</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">def</span><span class="fu"> input</span>
+  [[<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">7</span>]
+   [<span class="dv">1</span> <span class="dv">0</span> <span class="dv">2</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">6</span>]
+   [<span class="dv">3</span> <span class="dv">0</span> <span class="dv">1</span> <span class="dv">3</span>]])</code></pre></div>
+<p>нужно выдать</p>
+<pre><code>[7 6 3]</code></pre>
+<p>Для начала выполним первую половину задачи: выберем элементы, стоящие на чётных позициях:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">def</span><span class="fu"> only-evens</span>
+  (<span class="kw">comp</span> (map-indexed <span class="kw">vector</span>)
+        (<span class="kw">filter</span> #(<span class="kw">odd?</span> (<span class="kw">first</span> %)))
+        (<span class="kw">map</span> #(<span class="kw">nth</span> % <span class="dv">1</span>))))</code></pre></div>
+<p>Мы создали трансдьюсер, который на каждом входном элементе выполняет следующие действия:</p>
+<ol style="list-style-type: decimal">
+<li>Запускает <code>vector</code> с текущим индексом и элементом в качестве параметров.</li>
+<li>Оставляет только те вектора, где на первой позиции стоит нечётное число (т.е. пары «индекс-элемент» из элементов на чётных позициях, индексация в Clojure происходит с нуля).</li>
+<li>Выбирает из каждого вектора второй элемент.</li>
+</ol>
+<p>Запустим наш трансдьюсер:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">into</span> [] only-evens [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">7</span>])
+<span class="co">;; =&gt; [2 4 7]</span></code></pre></div>
+<p>Работает!</p>
+<p>При этом, в отличие от такого кода:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">-&gt;&gt;</span> [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">7</span>]
+     (map-indexed <span class="kw">vector</span>)
+     (<span class="kw">filter</span> #(<span class="kw">odd?</span> (<span class="kw">first</span> %)))
+     (<span class="kw">map</span> #(<span class="kw">nth</span> % <span class="dv">1</span>)))</code></pre></div>
+<p>который на самом деле преобразуется в</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(map-indexed <span class="kw">vector</span>
+             (<span class="kw">filter</span> #(<span class="kw">odd?</span> (<span class="kw">first</span> %))
+                     (<span class="kw">map</span> #(<span class="kw">nth</span> % <span class="dv">1</span>)
+                          [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">7</span>])))</code></pre></div>
+<p>проход по исходному вектору производится только один раз, промежуточных коллекций не строится (точнее, отличие будет заметно, если во втором случае коллекции не будут ленивыми; вдаваться в эти детали можно было бы, но мне лениво).</p>
+<p>Для полноты картины укажу ещё значения, которые появлялись бы на промежуточных шагах вычисления:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">comp</span> (map-indexed <span class="kw">vector</span>)       <span class="co">;; [[0 1] [1 2] [2 3]</span>
+                                 <span class="co">;;  [3 4] [4 5] [5 7]]</span>
+      (<span class="kw">filter</span> #(<span class="kw">odd?</span> (<span class="kw">first</span> %))) <span class="co">;; [[1 2] [3 4] [5 7]]</span>
+      (<span class="kw">map</span> #(<span class="kw">nth</span> % <span class="dv">1</span>))))         <span class="co">;; [2 4 7]</span></code></pre></div>
+<p>Для того, чтобы выполнить это преобразование и затем найти максимум, можно использовать функцию <code>transduce</code>:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">def</span><span class="fu"> xf</span>
+  (<span class="kw">map</span> #(transduce only-evens <span class="kw">max</span> <span class="dv">0</span> %)))</code></pre></div>
+<p>Запускаем:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">into</span> [] xf input)
+<span class="co">;; =&gt; [7 6 3]</span></code></pre></div>
+<p>Всё хорошо! Давайте всё и везде писать на трансдьюсерах!</p>
+<h1 id="некоторые-проблемы-с-трансдьюсерами">Некоторые проблемы с трансдьюсерами</h1>
+<p>Рассмотрим более сложную задачу. Пусть теперь наша последовательность — это некоторые изменения состояния, представляющего собой отображение целых чисел в натуральные. Так, в каждом элементе будет чётное количество чисел, в каждой паре первое число — ключ, а второе — значение, ассоциированное с этим ключом (либо нуль, если значение удалено). Нам нужно на каждый входной элемент выдать отображение с ключом <code>diff</code> и исходными значениями и с ключом <code>img</code> и состоянием.</p>
+<p>Например, на входе</p>
+<pre><code>(def input
+  [[1 2 3 4 5 7]
+   [1 0 2 4 5 6]
+   [3 0 1 3]])</code></pre>
+<p>нужно выдать</p>
+<pre><code>[; на первом шаге добавились ключи 1 3 5
+ {:diff [1 2 3 4 5 7], :img {1 2, 3 4, 5 7}]
+ ; удалили ключ 1, добавили 2, поменяли значение в 5
+ {:diff [1 0 2 4 5 6], :img {2 4, 3 4, 5 6}]
+ ; удалили ключ 3, добавили 1
+ {:diff [3 0 1 3]    , :img {1 3, 2 4, 5 6}]] </code></pre>
+<h2 id="попытка-решения">Попытка решения</h2>
+<p>Попробуем для начала построить вторую часть, значения в img.</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">
+
+(<span class="bu">def</span><span class="fu"> to-state1</span>
+  (<span class="kw">comp</span> (<span class="kw">map</span> #(<span class="kw">apply</span> <span class="kw">hash-map</span> %))
+        (<span class="kw">reduce</span> my-merge {})))</code></pre></div>
+<p>Запускаем:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">into</span> [] to-state1 input)
+<span class="co">; NullPointerException   clojure.core/comp/fn--4727 (core.clj:2460)</span></code></pre></div>
+<p>Упс! Попробуем стандартный вариант без трансдьюсеров, но с двумя проходами:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">-&gt;&gt;</span> input
+     (<span class="kw">map</span> #(<span class="kw">apply</span> <span class="kw">hash-map</span> %))
+     (<span class="kw">reduce</span> my-merge {}))
+<span class="co">;; =&gt; {1 3, 5 6, 2 4}</span></code></pre></div>
+<p>Всё работает. Почему же с трансдьюсерами вылетает NPE?</p>
+<h2 id="почему-возникла-проблема">Почему возникла проблема?</h2>
+<h2 id="быстрое-и-неправильное-решение">Быстрое (и неправильное) решение</h2>
+<h2 id="правильное-решение">Правильное решение</h2>
+<h1 id="трансдьюсеры-в-haskell-или-их-отсутствие">Трансдьюсеры в Haskell (или их отсутствие)</h1>
+<h2 id="композиция-функций">Композиция функций</h2>
+<h2 id="кондуиты">Кондуиты</h2>
+<h1 id="сравнение-производительности">Сравнение производительности</h1>
+
+		<div class="info">
+		  
+		  <i><a href="/tags/fp.html">fp</a>, <a href="/tags/transducers.html">transducers</a>, <a href="/tags/clojure.html">clojure</a>, <a href="/tags/haskell.html">haskell</a></i>
+		  
+		</div>
+		
+		
+                <p><i>Мансур Зиятдинов</i></p>
+		
+		<p><i><span>27</span> декабря 2016</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2016-12-27--transducers-and-haskell.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2016-12-27--transducers-and-haskell.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Tue, 27 Dec 2016 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2016-12-27--transducers-and-haskell.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+<item>
+    <title>Контест по функциональному программированию на Hackerrank</title>
+    <link>http://lambdasoft.ru/posts/2016-04-09--hackerrank-mansur.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>С 25 по 28 марта на Hackerrank проходил <a href="https://www.hackerrank.com/lambda-calculi-march-2016">контест по функциональному программированию Lambda Calculi - March 2016</a>. Я в нём участвовал и расскажу немного о впечатлениях.</p>
+<!--more-->
+<p>Утром 25 марта до начала контеста я пошёл в близлежащее кафе <a href="https://vk.com/agafredo">Агафредо</a>, чтобы подкрепиться и начать конкурс там. В первые минуты после начала контеста я занимался тем, что открывал вкладки и читал задания, пытаясь при этом не пролить кофе. Олимпиадный опыт участия и проведения ACM помог, почти про все задачи были понятно, как их решать.</p>
+<h1 id="первые-впечатления">Первые впечатления</h1>
+<ul>
+<li>«Functions or Not» — Ad Hoc задача — сортируем список, проверяем, есть ли дубликаты</li>
+<li>«Compute the Perimeter of a Polygon» — простейшая геометрия, посчитать (внезапно!) периметр — тупо суммируем длины</li>
+<li>«Compute the Area of a Polygon» — простейшая геометрия, посчитать площадь — берём соседние отрезки, считаем ориентированную площадь треугольника (она же косое произведение) и суммируем</li>
+<li>«Concave Polygon» — тут я думал, что тоже простейшая геометрия, но оказалось, что она не так проста, как я думал. Об этой задаче чуть позже</li>
+<li>«Tree Manager» — задача на зипперы, нужно двигаться по дереву и менять его, выполняя команды</li>
+<li>«Fighting Armies» — тут я думал, что нужно будет писать дерево с балансировками и прочим, но выяснилось, что пакет containers разрешен, и можно взять стандартный Data.Map</li>
+<li>«Simplify the Algebraic Expressions» — нужно упростить выражение, задача на технику</li>
+</ul>
+<p>Я начал решать, и после пары ошибок компиляции понял, что стоило порешать задачи для тренировки. Решив первые три задачи, я понял, что пора бы идти на работу… Утром некоторые коллеги удивились, что я написал, что буду через час, а вроде пришёл на работу, но делаю что-то совершенно другое, сидя на диване и попивая лимонад. Увы, это помогло не слишком сильно, ни одна задача не решилась (но для некоторых был написан ввод и вывод).</p>
+<h1 id="simplify-the-algebraic-expressions">Simplify the Algebraic Expressions</h1>
+<p>Поскольку я уже успел потыкаться во все задачи кроме этой и понять, что там нужно думать, я собираюсь решить Simplify, поскольку в ней думать не нужно, а нужно аккуратно всё запрограммировать. В задаче даны арифметические выражения (с одной переменной, и делением только для чисел, причём нацело), нужно раскрыть все скобки. К сожалению, формат входа описан не слишком чётко.</p>
+<p>Беру Parsec, пишу парсер входных данных, пишу простейшее вычисление (поскольку полиномы не выше пятой степени, делаю на списках из шести элементов) и чуть более сложный вывод. Проходит один тест, на двух валится, на четвёртом выдаёт неправильный ответ. Думаю.</p>
+<p>Добавляю костыль. Перестаёт валиться на одном из тестов, выдаёт правильный ответ. Ругаю нечёткость формата входа.</p>
+<p>Думаю. Добавляю кучу скобок ко входным данных, нахожу тест, на котором программа работает неверно. Думаю. Чиню.</p>
+<p>Все тесты проходят. На часах 931 минута, или 15:31 с начала контеста.</p>
+<h1 id="concave-polygon">Concave Polygon</h1>
+<p>Очень поздним вечером я понимаю, что раз в задаче порядок обхода точек многоугольника может быть любым, и нужно ответить, является ли он выпуклым, то нужно проверять, есть ли хотя бы одна точка внутри многоугольника из остальных — тогда он вогнутый, или нет — тогда выпуклый.</p>
+<p>Пытаюсь писать, используя имеющийся код для ориентированной площади и проверяя сумму углов между внутренней точкой и парами соседних. Понимаю, что в коде куча подгона и костылей, и… переписываю всё на ray tracing.</p>
+<p>Работает, всё проходит, 1004 минуты = 16:44 с начала. Смотрю на таблицу лидеров, отмечаю соперников, которые могут меня обогнать, ложусь спать.</p>
+<h1 id="fighting-armies">Fighting Armies</h1>
+<p>Утром вижу, что <a href="https://www.hackerrank.com/mipt_vi002">mipt_vi002</a> лёг спать позже и обогнал меня. Думаю позавтракать в Агафредо и сажусь решать.</p>
+<p>В этой задаче нужно искать максимум в наборе, удалять максимум из набора, добавлять число в набор и объединять два набора.</p>
+<p>Пишу на Map. На последних тестах валится по таймауту. Переписываю на Set. На последних тестах валится по таймауту. Переписываю на IntMap (IntMap Int). На последних тестах валится по таймауту.</p>
+<p>И тут я замечаю, что в задаче сказано “вход может быть очень большим”. Беру ByteString, немного шаманю — и тесты проходят. Время 1433 минут = 23:53 с начала.</p>
+<h1 id="tree-manager">Tree Manager</h1>
+<p>Мне остаётся победить один тест. Думаю аккуратно расписать случаи. В задаче можно менять значение в узле; печатать его; переходить к левому и правому брату, родителю и сыну с указанным номером; вставлять левого и правого брата и самого левого сына; удалять текущее поддерево.</p>
+<p>Расписываю. Ничего не нахожу. Пишу случайные команды. Вижу неправильный ответ.</p>
+<p>Исправляю ошибку с переходом к родителю (у меня зиппер, т.е. левые братья записаны в списке, причём голова — брат текущей вершины, поэтому при переходе наверх надо переворачивать левых братьев).</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Tree</span> <span class="fu">=</span> <span class="dt">Tree</span> {<span class="ot"> val ::</span> <span class="dt">Val</span>,<span class="ot"> children ::</span> [<span class="dt">Tree</span>] }
+            <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>)
+
+<span class="co">-- Зиппер для дерева - это:</span>
+<span class="co">-- - родитель (если есть)</span>
+<span class="co">-- - левые братья</span>
+<span class="co">-- - текущее дерево</span>
+<span class="co">-- - правые братья</span>
+<span class="kw">data</span> <span class="dt">Hole</span> <span class="fu">=</span> <span class="dt">Hole</span> {<span class="ot"> parents ::</span> <span class="dt">Maybe</span> <span class="dt">Hole</span>
+                 ,<span class="ot"> lefts ::</span> [<span class="dt">Tree</span>]
+                 ,<span class="ot"> current ::</span> <span class="dt">Tree</span>
+                 ,<span class="ot"> rights ::</span> [<span class="dt">Tree</span>]
+                 } <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>)
+
+<span class="ot">cur ::</span> <span class="dt">Hole</span> <span class="ot">-&gt;</span> <span class="dt">Val</span>
+cur <span class="fu">=</span> val <span class="fu">.</span> current
+
+<span class="ot">changeCur ::</span> <span class="dt">Val</span> <span class="ot">-&gt;</span> <span class="dt">Hole</span> <span class="ot">-&gt;</span> <span class="dt">Hole</span>
+changeCur new (<span class="dt">Hole</span> ps ls c rs) <span class="fu">=</span>
+  <span class="dt">Hole</span> ps ls (c { val <span class="fu">=</span> new }) rs
+
+goLeft (<span class="dt">Hole</span> ps (l<span class="fu">:</span>ls) c rs) <span class="fu">=</span> <span class="dt">Hole</span> ps ls l (c<span class="fu">:</span>rs)
+goRight (<span class="dt">Hole</span> ps ls c (r<span class="fu">:</span>rs)) <span class="fu">=</span> <span class="dt">Hole</span> ps (c<span class="fu">:</span>ls) r rs
+
+<span class="co">-- ошибка: было ls ++ [c] ++ rs</span>
+goUp (<span class="dt">Hole</span> (<span class="dt">Just</span> p) ls c rs) <span class="fu">=</span>
+  p { current <span class="fu">=</span> (current p) { children <span class="fu">=</span> reverse ls<span class="fu">++</span>[c]<span class="fu">++</span> rs }}
+
+<span class="co">-- ошибка: было (take (k-1) cs)</span>
+goDown k now<span class="fu">@</span>(<span class="dt">Hole</span> p ls (<span class="dt">Tree</span> v cs) rs) <span class="fu">=</span>
+  <span class="dt">Hole</span> (<span class="dt">Just</span> now)
+       (reverse <span class="fu">$</span> take (k<span class="fu">-</span><span class="dv">1</span>) cs)
+       (cs<span class="fu">!!</span>(k<span class="fu">-</span><span class="dv">1</span>))
+       (drop k cs)
+
+insertLeft x (<span class="dt">Hole</span> p ls c rs) <span class="fu">=</span> <span class="dt">Hole</span> p (empty x <span class="fu">:</span> ls) c rs
+insertRight x (<span class="dt">Hole</span> p ls c rs) <span class="fu">=</span> <span class="dt">Hole</span> p ls c (empty x <span class="fu">:</span> rs)
+
+insertChild x (<span class="dt">Hole</span> p ls (<span class="dt">Tree</span> v cs) rs) <span class="fu">=</span>
+  <span class="dt">Hole</span> p ls (<span class="dt">Tree</span> v <span class="fu">$</span> empty x <span class="fu">:</span> cs) rs
+
+<span class="co">-- ошибка: было ls ++ rs</span>
+delete (<span class="dt">Hole</span> (<span class="dt">Just</span> p) ls c rs) <span class="fu">=</span>
+  p { current <span class="fu">=</span> (current p) { children <span class="fu">=</span> reverse ls <span class="fu">++</span> rs }}</code></pre></div>
+<p>Отправляю, тесты проходят. На часах 1464 минуты, или 24:24 с начала контеста. Смотрю таблицу — в десятке. Успокаиваюсь, иду в Агафредо завтракать.</p>
+<div class="figure">
+<img src="/images/2016-04-09-hackerrank-leaderboard.png" alt="Итоговая таблица контеста" />
+<p class="caption">Итоговая таблица контеста</p>
+</div>
+<h1 id="после-завершения">После завершения</h1>
+<p>Через несколько дней контест завершился, при этом я внезапно оказался на одно место выше (почему-то исчез тот, кто был на первом месте) — на шестом; когда же подвели окончательные итоги и посчитали рейтинг — я написал сюда. Жду футболку с Hackerrank…</p>
+
+		<div class="info">
+		  
+		  <i><a href="/tags/fp.html">fp</a>, <a href="/tags/contest.html">contest</a>, <a href="/tags/hackerrank.html">hackerrank</a>, <a href="/tags/%D0%BE%D1%82%D1%87%D1%91%D1%82.html">отчёт</a></i>
+		  
+		</div>
+		
+		
+                <p><i>Мансур Зиятдинов</i></p>
+		
+		<p><i><span> 9</span> апреля 2016</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2016-04-09--hackerrank-mansur.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2016-04-09--hackerrank-mansur.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Sat, 09 Apr 2016 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2016-04-09--hackerrank-mansur.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+<item>
+    <title>Tardis</title>
+    <link>http://lambdasoft.ru/posts/2016-03-05--tardis.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>Этот пост написан по материалам митапа, прошедшего 26 февраля в Lambda.</p>
+<p>Tardis - монада, которая позволяет вычислять, используя путешествия во времени. Она представляет собой объединение монады State и монады RState, которая «протягивает» состояние в обратном направлении. Далее мы рассмотрим простые примеры, немного поговорим о научных исследованиях в области Computer Science и не только, увидим Tardis изнутри и узнаем, что эта библиотека пригодна не только для написания эзотерических программ, но и для полезных в хозяйстве трюков.</p>
+<!--more-->
+<p>Мы рассмотрим нескольких простых примеров, которые отпугнут начинающих, затем углубимся в пространство Минковского и практически по замкнутой времениподобной кривой вернёмся к Tardis, рассмотрев применение этой монады к компиляторам.</p>
+<h1 id="простые-бессмысленные-примеры">Простые бессмысленные примеры</h1>
+<p>Простейший пример работы с Tardis выглядит так:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ex1 ::</span> <span class="dt">Tardis</span> <span class="dt">Int</span> <span class="dt">Double</span> <span class="dt">String</span>
+ex1 <span class="fu">=</span> <span class="kw">do</span>
+  a <span class="ot">&lt;-</span> getFuture
+  sendFuture <span class="fl">0.5</span>
+  b <span class="ot">&lt;-</span> getPast
+  sendPast <span class="dv">10</span>
+  return <span class="fu">$</span> show a <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> show b</code></pre></div>
+<p>Здесь мы получаем <code>a</code> из будущего, отправляем <code>0.5</code> в будущее, получаем <code>b</code> из прошлого (т.е. <code>0.5</code>) и отправляем в прошлое <code>10</code> (т.е. <code>a</code> получает значение <code>10</code>). В итоге будет возвращено <code>&quot;10 0.5&quot;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ex2 ::</span> <span class="dt">Tardis</span> [<span class="dt">Int</span>] () [<span class="dt">Int</span>]
+ex2 <span class="fu">=</span> <span class="kw">do</span>
+  <span class="co">-- получаем числа Фибоначчи из будущего</span>
+  fibs <span class="ot">&lt;-</span> getFuture
+  <span class="co">-- меняем то, что движется из будущего на кумулятивные суммы:</span>
+  <span class="co">-- 1, 0, 1, 2, 3, 5, 8, 13 -&gt; 1, 2, 3, 5, 8, 13</span>
+  modifyBackwards <span class="fu">$</span> scanl (<span class="fu">+</span>) <span class="dv">0</span>
+  <span class="co">-- отправляем в прошлое числа Фибоначчи:</span>
+  <span class="co">-- 1, 2, 3, 5, 8, 13</span>
+  sendPast <span class="fu">$</span> <span class="dv">1</span><span class="fu">:</span>fibs
+  return fibs</code></pre></div>
+<p>Ещё пример:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ex3 ::</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">Tardis</span> <span class="dt">Double</span> (<span class="dt">Double</span>,<span class="dt">Int</span>) [<span class="dt">Double</span>]
+ex3 [] <span class="fu">=</span> return []
+ex3 (x<span class="fu">:</span>xs) <span class="fu">=</span> <span class="kw">do</span>
+  <span class="co">-- получаем среднее из будущего</span>
+  avg <span class="ot">&lt;-</span> getFuture
+  <span class="co">-- меняем то, что отправлено в будущее,</span>
+  <span class="co">-- добавив к сумме элемент и к количеству единицу</span>
+  modifyForwards <span class="fu">$</span> \(s, n) <span class="ot">-&gt;</span> (s<span class="fu">+</span>x, n<span class="fu">+</span><span class="dv">1</span>)
+  <span class="co">-- повторяем рекурсивно оставшегося списка</span>
+  rest <span class="ot">&lt;-</span> ex3 xs
+  <span class="co">-- получаем из прошлого сумму и количество</span>
+  (s,n) <span class="ot">&lt;-</span> getPast
+  <span class="co">-- отправляем в прошлое среднее</span>
+  sendPast <span class="fu">$</span> s<span class="fu">/</span>fromIntegral n
+  <span class="co">-- возвращаем список с элементами, уменьшенными на среднее</span>
+  return <span class="fu">$</span> (x<span class="fu">-</span>avg) <span class="fu">:</span> rest</code></pre></div>
+<h1 id="немного-науки">Немного науки</h1>
+<blockquote>
+<div class="figure">
+<img src="http://media.mnn.com/assets/images/2013/12/hawkinginvite.jpg" />
+
+</div>
+</blockquote>
+<p>Хотя может показаться, что Tardis — просто игрушка и годится только для написания эзотерических программ для смущения неокрепших умов, но на самом деле возможности компьютеров при наличии путешествий во времени — интересная математическая задача, конечно, не столь близкая к практике как квантовые компьютеры, но всё же стоящая рассмотрения.</p>
+<h2 id="по-мировым-линиям">По мировым линиям…</h2>
+<p>Дорогие читатели, вам, конечно же, известно, что специальная теория относительности запрещает движение со скоростью, большей скорости света. Поэтому не все прямые линии в четырёхмерном пространстве Минковского описывают движение материальных частиц — некоторые из них наклонены сильнее, чем линии света, т.е. сдвигаясь на одну секунду по временно́й координате, мы сдвигаемся более, чем на 300000 м в пространственных координатах. Соответственно, все линии делятся на времениподобные (находятся внутри светового конуса), светоподобные (на световом конусе), пространственноподобные (вне светового конуса). Поскольку все взаимодействия распространяются не быстрее скорости света, мы можем повлиять только на те события, которые находятся внутри светового конуса будущего, и наоборот, только те события, которые находятся внутри светового конуса прошлого, могли влиять на нас.</p>
+<p>В общей теории относительности всё становится ещё более интересным. Четырёхмерное пространство может быть искривлено распределением масс, которое само меняется по геометрии пространства. Для нас важно то, что в результате световые конусы в разных точках могут отличаться: быть наклонёнными друг относительно друга или иметь разный раствор конуса.</p>
+<div class="figure">
+<img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Lorentz_transform_of_world_line.gif" alt="Демонстрация на странице https://en.wikipedia.org/wiki/World_line" />
+<p class="caption">Демонстрация на странице https://en.wikipedia.org/wiki/World_line</p>
+</div>
+<p>В некоторых решениях уравнений Эйнштейна пространство искривлено так, что некоторые мировые линии могут быть замкнутыми. Таким образом, для тел на этих линиях прошлое — это и будущее. Можно сказать, у них там бесконечный день сурка.</p>
+<div class="figure">
+<img src="/images/2016-03-05-groundhog.gif" alt="Замкнутая времениподобная гифка" />
+<p class="caption">Замкнутая времениподобная гифка</p>
+</div>
+<h2 id="к-путешествиям-во-времени">…к путешествиям во времени…</h2>
+<p>Достаточно логичной позицией является принцип самосогласованности Новикова, который утверждает, что допустимы лишь самосогласованные решения уравнений. Например, нельзя запустить бильярдный шар в кротовую нору так, чтобы он вылетел из неё и ударил себя в прошлом, чтобы он не попал в кротовую нору и т.д. После того, как мы запустим шар, он вылетит из кротовой норы и ударит себя так, чтобы попасть в кротовую нору под углом, необходимым для того, чтобы вылететь из кротовой норы и ударить себя в прошлом так, как нужно. В общем, убить своего собственного дедушку нельзя. Получается что-то вроде самосбывающихся пророчеств. Например, Акрисию говорят, что его внук его убьёт, поэтому Акрисий бросает в море внука в ящике, но тот выживает, вырастает, возвращается в город и убивает Акрисия на соревнованиях. Такие дела.</p>
+<h2 id="и-вычислениям">…и вычислениям</h2>
+<p>В общем, получается, что пространство-время само вычисляет неподвижную точку какого-нибудь преобразования. Это разумеется, можно использовать для вычислений, так же, как квантовый компьютер использует быстрое «вычисление» каких-либо гамильтонианов природой. Например, Дэвид Дойч показал <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, что замкнутую времениподобную кривую можно использовать для решения задач из NP за полиномиальное время.</p>
+<p>Позже Скотт Ааронсон доказал, что, на самом деле, этого достаточно даже для решения за полиномиальное время задач из PSPACE, т.е. таких, которые могут быть решены машиной Тьюринга с полиномиальной лентой <a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a><a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>.</p>
+<h2 id="disclaimer-это-не-решает-pnp">DISCLAIMER! Это не решает P=NP</h2>
+<p>Разумеется, наличие Tardis не «доказывает», что P=NP. Если бы и удалось промоделировать вычисления выше, они бы выполнялись полным перебором, за экспоненциальное время.</p>
+<h1 id="tardis-изнутри">Tardis изнутри</h1>
+<p>Давайте посмотрим, как устроен Tardis. Мы начнём с монад, увидим работу монад State и Reverse State, рассмотрим класс MonadFix и неподвижные точки и, наконец, перейдём к Tardis.</p>
+<blockquote>
+<p>Монада — это моноид в категории эндофункторов (фольклор)</p>
+</blockquote>
+<p>Монада — это класс типов с операциями return, которая оборачивает «чистое» значение в монаду, и bind, которая позволяет преобразовывать значения внутри монады, используя функцию, получающую «чистое» значение и возвращающую монадическое.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">return<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> m a
+<span class="ot">(&gt;&gt;=) ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b</code></pre></div>
+<p>Рассмотрим, например, монаду State, которая используется для представления состояния в функциональном языке. Здесь определение монады из пакета transformers немного упрощено.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">State</span> s a <span class="fu">=</span> <span class="dt">State</span> {<span class="ot"> runState ::</span> s <span class="ot">-&gt;</span> (a,s) }</code></pre></div>
+<p>Мы можем определить операции так:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Monad</span> (<span class="dt">State</span> s) <span class="kw">where</span>
+  return a <span class="fu">=</span> <span class="dt">State</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> (a,s)
+  m <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> <span class="dt">State</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+    (a,s&#39;) <span class="fu">=</span> runState m s
+    (b,s&#39;&#39;) <span class="fu">=</span> runState (f a) s&#39;
+    <span class="kw">in</span> (b, s&#39;&#39;)</code></pre></div>
+<p>Оборачивание значения никак не влияет на состояние, а для связывания мы запускаем вычисление и получаем новое состояние, которое и подаётся на дальшейшим вычислениям. Добавив несколько вспомогательных функций для получения и установки состояния, мы получим удобный инструмент для программирования.</p>
+<p>Но что, если мы будет передавать состояние не вниз по коду, а вверх?</p>
+<p>Заработает ли это?</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">RState</span> s a <span class="fu">=</span> <span class="dt">RState</span> {<span class="ot"> runRState ::</span> s <span class="ot">-&gt;</span> (a,s) }
+
+<span class="kw">instance</span> <span class="dt">Monad</span> (<span class="dt">RState</span> s) <span class="kw">where</span>
+    return x <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> (,) x
+    <span class="dt">RState</span> sf <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span>
+        <span class="kw">let</span> (a,s&#39;&#39;) <span class="fu">=</span> sf s&#39;
+            (b,s&#39;) <span class="fu">=</span> runRState (f a) s
+        <span class="kw">in</span> (b,s&#39;&#39;)</code></pre></div>
+<p>Да, потому что связывания в let выполняются лениво. Рассмотрим простейший пример.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="kw">do</span>
+  a <span class="ot">&lt;-</span> get
+  put <span class="dv">1</span>
+  return a</code></pre></div>
+<p>Если этот пример записать без синтаксического сахара, получим</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> get <span class="fu">&gt;&gt;=</span> \a <span class="ot">-&gt;</span> put <span class="dv">1</span> <span class="fu">&gt;&gt;=</span> \_ <span class="ot">-&gt;</span> return a</code></pre></div>
+<p>Заменив <code>(&gt;&gt;=)</code> и <code>return</code> на их определения, получаем</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s&#39;&#39;) <span class="fu">=</span> (\s <span class="ot">-&gt;</span> (s,s)) s&#39;
+  (b,s&#39;)  <span class="fu">=</span> runRState ((\a <span class="ot">-&gt;</span> put <span class="dv">1</span> <span class="fu">&gt;&gt;=</span> \_ <span class="ot">-&gt;</span> <span class="dt">RState</span> (\s <span class="ot">-&gt;</span> (a,s))) a) s
+  <span class="kw">in</span> (b,s&#39;&#39;)</code></pre></div>
+<p>Преобразуя, получаем</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s&#39;&#39;) <span class="fu">=</span> (s&#39;,s&#39;)
+  (b,s&#39;)  <span class="fu">=</span> runRState (put <span class="dv">1</span> <span class="fu">&gt;&gt;=</span> \_ <span class="ot">-&gt;</span> <span class="dt">RState</span> (\s <span class="ot">-&gt;</span> (a,s))) s
+  <span class="kw">in</span> (b,s&#39;&#39;)</code></pre></div>
+<p>Заменив внутреннию (&gt;&gt;=), получаем</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s&#39;&#39;) <span class="fu">=</span> (s&#39;,s&#39;)
+  (b,s&#39;)  <span class="fu">=</span> runRState (<span class="dt">RState</span> <span class="fu">$</span> \t <span class="ot">-&gt;</span> <span class="kw">let</span>
+                          (c,t&#39;&#39;) <span class="fu">=</span> (\_ <span class="ot">-&gt;</span> ((),<span class="dv">1</span>)) t&#39;
+                          (d,t&#39;) <span class="fu">=</span> runRState ((\_ <span class="ot">-&gt;</span> <span class="dt">RState</span> (\s <span class="ot">-&gt;</span> (a,s))) c) t
+                      <span class="kw">in</span> (d,t&#39;&#39;)) s
+  <span class="kw">in</span> (b,s&#39;&#39;)</code></pre></div>
+<p>Упрощая, получаем</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s&#39;&#39;) <span class="fu">=</span> (s&#39;,s&#39;)
+  (b,s&#39;)  <span class="fu">=</span> runRState (<span class="dt">RState</span> <span class="fu">$</span> \t <span class="ot">-&gt;</span> <span class="kw">let</span>
+                          (c,t&#39;&#39;) <span class="fu">=</span> ((),<span class="dv">1</span>)
+                          (d,t&#39;) <span class="fu">=</span> runRState (<span class="dt">RState</span> (\s <span class="ot">-&gt;</span> (a,s))) t
+                      <span class="kw">in</span> (d,t&#39;&#39;)) s
+  <span class="kw">in</span> (b,s&#39;&#39;)</code></pre></div>
+<p>И далее</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s&#39;&#39;) <span class="fu">=</span> (s&#39;,s&#39;)
+  (b,s&#39;)  <span class="fu">=</span> (\t <span class="ot">-&gt;</span> <span class="kw">let</span>
+                (c,t&#39;&#39;) <span class="fu">=</span> ((),<span class="dv">1</span>)
+                (d,t&#39;) <span class="fu">=</span> (\s <span class="ot">-&gt;</span> (a,s)) t
+                <span class="kw">in</span> (d,t&#39;&#39;)) s
+  <span class="kw">in</span> (b,s&#39;&#39;)</code></pre></div>
+<p>В итоге получаем следующее определение</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s&#39;&#39;) <span class="fu">=</span> (s&#39;,s&#39;)
+  (b,s&#39;)  <span class="fu">=</span> (a,<span class="dv">1</span>)
+  <span class="kw">in</span> (b,s&#39;&#39;)</code></pre></div>
+<p>Здесь уже видно, что <code>b = a</code> и <code>a = s' = s'' = 1</code>. Поэтому вызов <code>runRState f 0</code> вернёт <code>(1,1)</code></p>
+<p>На самом деле всё чуть сложнее. Tardis не просто монада, а трансформер монад. Это означает, что наши функции (runState и runRState) могут работать не над чистыми значениями, а в какой-то другой монаде. Поэтому мы не можем использовать let, поскольку внутри должны быть монадические вычисления.</p>
+<p>Для того, чтобы всё заработало, служит класс типов MonadFix. В нём есть операция <code>mfix</code>, которая позволяет за один шаг получить неподвижную точку преобразования <code>a -&gt; m a</code>.</p>
+<p>Класс MonadFix в свою очередь основан на классе ArrowLoop с функцией <code>loop</code>. Её можно представить себе как схему из функциональных элементов, в которой некоторые выходы могут поданы обратно на входы. То, что (стабильно) получается на остальных выходах — результат работы функции <code>loop</code>.</p>
+<p>Tardis — просто объединение монад State и RState, работающих над монадой <code>m</code>, являющейся монадой с неподвижной точкой:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">MonadFix</span> m <span class="ot">=&gt;</span> <span class="dt">Monad</span> (<span class="dt">TardisT</span> bw fw m) <span class="kw">where</span>
+  return x <span class="fu">=</span> tardis <span class="fu">$</span> \s <span class="ot">-&gt;</span> (x, s)
+  m <span class="fu">&gt;&gt;=</span> f  <span class="fu">=</span> <span class="dt">TardisT</span> <span class="fu">$</span> \ <span class="fu">~</span>(bw, fw) <span class="ot">-&gt;</span> <span class="kw">do</span>
+    rec (x,  <span class="fu">~</span>(bw&#39;&#39;, fw&#39; )) <span class="ot">&lt;-</span> runTardisT m (bw&#39;, fw)
+        (x&#39;, <span class="fu">~</span>(bw&#39; , fw&#39;&#39;)) <span class="ot">&lt;-</span> runTardisT (f x) (bw, fw&#39;)
+    return (x&#39;, (bw&#39;&#39;, fw&#39;&#39;))</code></pre></div>
+<p>Ключевое слово <code>rec</code> — такой же синтаксический сахар для <code>MonadFix</code>, как <code>do</code> — синтаксический сахар для <code>Monad</code>. Здесь значение типа <code>fw</code> движется вниз по коду, как состояние в монаде State, а значение типа <code>bw</code> — вверх, как в RState.</p>
+<h1 id="сложный-но-практический-пример">Сложный, но практический пример</h1>
+<p>Рассмотрим язык обычных формул</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="dt">Add</span> <span class="dt">Term</span> <span class="dt">Term</span>
+          <span class="fu">|</span> <span class="dt">Mul</span> <span class="dt">Term</span> <span class="dt">Term</span>
+          <span class="fu">|</span> <span class="dt">Const</span> <span class="dt">Int</span>
+          <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>)
+<span class="kw">type</span> <span class="dt">Value</span> <span class="fu">=</span> <span class="dt">Int</span></code></pre></div>
+<p>У нас есть сложение, умножение и константы. Вычислять мы будем в целые числа. Само вычисление, разумеется, производится тривиально.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">interp0 ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Identity</span> <span class="dt">Value</span>
+interp0 (<span class="dt">Add</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp0 f
+  y <span class="ot">&lt;-</span> interp0 g
+  return <span class="fu">$</span> x<span class="fu">+</span>y
+interp0 (<span class="dt">Mul</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp0 f
+  y <span class="ot">&lt;-</span> interp0 g
+  return <span class="fu">$</span> x<span class="fu">*</span>y
+interp0 (<span class="dt">Const</span> x) <span class="fu">=</span> return x</code></pre></div>
+<p>Никаких нетривиальных монад тут нет, только Identity, которая, как и понятно из её названия, ничего не делает. Если формула — сложение двух подформул, мы вычисляем их значения и складываем, если умножение — вычисляем и умножаем, если константа — возвращаем её.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">runIdentity (interp0 <span class="fu">$</span>
+	<span class="dt">Mul</span>
+		(<span class="dt">Add</span>
+			(<span class="dt">Add</span> (<span class="dt">Const</span> <span class="dv">1</span>) (<span class="dt">Const</span> <span class="dv">1</span>))
+			(<span class="dt">Const</span> <span class="dv">1</span>))
+		(<span class="dt">Const</span> <span class="dv">3</span>))
+<span class="dv">9</span></code></pre></div>
+<p>Теперь добавим подсчёт шагов. Один шаг — это выполнение одного сложения или умножения.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">interp1 ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Tardis</span> () <span class="dt">Int</span> <span class="dt">Value</span>
+interp1 (<span class="dt">Add</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp1 f
+  y <span class="ot">&lt;-</span> interp1 g
+  modifyForwards (<span class="fu">+</span><span class="dv">1</span>)
+  return <span class="fu">$</span> x<span class="fu">+</span>y
+interp1 (<span class="dt">Mul</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp1 f
+  y <span class="ot">&lt;-</span> interp1 g
+  modifyForwards (<span class="fu">+</span><span class="dv">1</span>)
+  return <span class="fu">$</span> x<span class="fu">*</span>y
+interp1 (<span class="dt">Const</span> x) <span class="fu">=</span> return x</code></pre></div>
+<p>По сути, мы используем монаду State для хранения количества выполненных шагов и для этого после вычисления значения подформул мы добавляем единицу к хранимому в состоянии числу. Пока всё просто, даже для императивных языков. Можно добавить терм для получения количества шагов из кода:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="fu">...</span>
+          <span class="fu">|</span> <span class="dt">Count</span>
+
+<span class="ot">interp1 ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Tardis</span> () <span class="dt">Int</span> <span class="dt">Value</span>
+<span class="fu">...</span>
+interp1 <span class="dt">Count</span> <span class="fu">=</span> getPast</code></pre></div>
+<p>Мы просто возвращаем в качестве значения формулы <code>Count</code> количество шагов на данный момент.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">runTardis (interp1 <span class="fu">$</span>
+	<span class="dt">Mul</span>
+		(<span class="dt">Add</span>
+			(<span class="dt">Add</span> (<span class="dt">Const</span> <span class="dv">1</span>) (<span class="dt">Const</span> <span class="dv">1</span>))
+			(<span class="dt">Const</span> <span class="dv">1</span>))
+		(<span class="dt">Const</span> <span class="dv">3</span>))
+	((),<span class="dv">0</span>)
+<span class="dv">9</span></code></pre></div>
+<p>Теперь добавим хитрую магию RState: подсчитаем количество шагов <em>до завершения</em> вычисления.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">interp2 ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Tardis</span> <span class="dt">Int</span> () <span class="dt">Value</span>
+interp2 (<span class="dt">Add</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp2 f
+  y <span class="ot">&lt;-</span> interp2 g
+  modifyBackwards (<span class="fu">+</span><span class="dv">1</span>)
+  return <span class="fu">$</span> x<span class="fu">+</span>y
+interp2 (<span class="dt">Mul</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp2 f
+  y <span class="ot">&lt;-</span> interp2 g
+  modifyBackwards (<span class="fu">+</span><span class="dv">1</span>)
+  return <span class="fu">$</span> x<span class="fu">*</span>y
+interp2 (<span class="dt">Const</span> x) <span class="fu">=</span> return x
+interp2 <span class="dt">Count</span> <span class="fu">=</span> getFuture</code></pre></div>
+<p>Практически ничего не изменилось, а наш код считает количество шагов до завершения вычисления! Как пишет Уодлер [Wadler 1991], «реализацию этого на императивном языке программирования мы оставляем мазохистичному читателю». Там же он указывает, что этот способ был найден при реализации «одного строкового алгоритма», т.е. эта задача не специфична для компиляторов.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">runTardis (interp2 <span class="fu">$</span>
+	<span class="dt">Mul</span>
+		(<span class="dt">Add</span>
+			(<span class="dt">Add</span> (<span class="dt">Const</span> <span class="dv">1</span>) (<span class="dt">Const</span> <span class="dv">1</span>))
+			(<span class="dt">Const</span> <span class="dv">1</span>))
+		(<span class="dt">Const</span> <span class="dv">3</span>))
+	(<span class="dv">0</span>,())
+<span class="dv">12</span></code></pre></div>
+<h1 id="библиография">Библиография</h1>
+<p>Код, которые стоит посмотреть:</p>
+<ul>
+<li><a href="https://hackage.haskell.org/package/tardis-0.3.0.0">tardis</a></li>
+<li><a href="https://github.com/DanBurton/tardis/blob/master/Control/Monad/Tardis/Example.hs">пример на Tardis</a></li>
+<li><a href="https://hackage.haskell.org/package/tardis-0.3.0.0/docs/src/Control-Monad-Trans-Tardis.html">документацию</a></li>
+<li><a href="https://hackage.haskell.org/package/transformers-0.4.3.0/docs/Control-Monad-Trans-State-Lazy.html">StateT</a></li>
+</ul>
+<p>При написании я использовал материалы:</p>
+<ul>
+<li>Wadler P. The essence of functional programming // <em>Proceedings of the 19th ACM SIGPLAN-SIGACT symposium on Principles of programming languages.</em> — ACM, 1992. — С. 1–14.</li>
+<li><a href="http://panicsonic.blogspot.ru/2007/12/backwards-state-or-power-of-laziness.html">Backwards State, or: The Power of Laziness</a></li>
+<li><a href="https://lukepalmer.wordpress.com/2008/08/10/mindfuck-the-reverse-state-monad/">Mindfuck: The Reverse State Monad</a></li>
+<li><a href="https://unknownparallel.wordpress.com/2012/11/05/bowling-on-a-tardis/">Bowling on a Tardis</a></li>
+<li><a href="https://unknownparallel.wordpress.com/2013/05/07/two-implementations-of-seers/">Two implementations of Seers</a></li>
+</ul>
+<p>Видео с выступления находится <a href="http://vk.com/wall-106273219_62">здесь</a>. Фото <a href="http://vk.com/wall-106273219_64">здесь</a>. Полный код (здесь)[https://github.com/lambdakazan/tardis-demo]</p>
+<p>Научные статьи о вычислениях при наличии замкнутых времениподобных кривых:</p>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><a href="http://journals.aps.org/prd/abstract/10.1103/PhysRevD.44.3197">David Deutsch. Quantum mechanics near closed timelike lines // Phys. Rev. D 44, 3197. –– 1991.</a><a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p><a href="http://www.scottaaronson.com/writings/limitsqc-draft.pdf">Scott Aaronson. The Limits of Quantum Computers // Scientific American — 298.3 — 2008</a><a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p><a href="http://www.scottaaronson.com/papers/ctc.pdf">Scott Aaronson, John Watrous. Closed Timelike Curves Make Quantum and Classical Computing Equivalent // Proceedings of the Royal Society of London A: Mathematical, Physical and Engineering Sciences. — Vol. 465. — No. 2102. — 2009.</a><a href="#fnref3">↩</a></p></li>
+</ol>
+</div>
+
+		<div class="info">
+		  
+		  <i><a href="/tags/fp.html">fp</a>, <a href="/tags/tardis.html">tardis</a>, <a href="/tags/meetup.html">meetup</a></i>
+		  
+		</div>
+		
+		
+                <p><i>Мансур Зиятдинов</i></p>
+		
+		<p><i><span> 5</span> марта 2016</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2016-03-05--tardis.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2016-03-05--tardis.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Sat, 05 Mar 2016 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2016-03-05--tardis.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+<item>
+    <title>Tardis: программируем на <s>монаде</s> машине времени</title>
+    <link>http://lambdasoft.ru/posts/2016-02-25--meetup--tardis.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>Приветствую тебя, дорогой функциональный друг!</p>
+<p>Время пришло и эта новость для тебя.</p>
+<p>Если при звуках «haskell», «monads», «lambda» твои функциональные уши настораживаются и в твоем умном организме начинает вырабатываться эндорфин, если ты помнишь, для чего проходят hard-mode митапы в Lambda, то самое время оказаться тебе в центре притяжения всего, что есть функционального в Казани и окрестностях Иннополиса.</p>
+<p>26 февраля, в пятницу, в 19:00 <!--more--> Мансур Зиятдинов расскажет о: «Tardis: программируем на <s>монаде</s> машине времени»</p>
+<p>Будут продемонстрированы монады состояния State и “обратного” состояния RState. Их объединение - монада Tardis</p>
+<p>Спойлер! Самоисполняющееся пророчество об этом докладе гласит, что на докладе будут упомянуты самоисполняющиеся пророчества.</p>
+<p><strong>Спикер:</strong> Мансур Зиятдинов</p>
+<p><strong>Когда:</strong> 26 февраля (ПТ), 19:00</p>
+<p><strong>Где:</strong> Чистопольская 20/12, офис <a href="/contact.html">Lambda</a>, 2 этаж</p>
+<p><img src="/images/2015-12-04-mansur.jpg" /> <img src="http://cs633430.vk.me/v633430710/14b52/2mtFJEPXIrk.jpg" /> <img src="http://cs633430.vk.me/v633430710/14b44/a8oQyVJaJ3g.jpg" /> <img src="http://cs633430.vk.me/v633430710/14b34/acXQWHvQ07k.jpg" /></p>
+
+		<div class="info">
+		  
+		  <i><a href="/tags/%D0%B0%D0%BD%D0%BE%D0%BD%D1%81.html">анонс</a>, <a href="/tags/%D0%BC%D0%B8%D1%82%D0%B0%D0%BF.html">митап</a>, <a href="/tags/haskell.html">haskell</a>, <a href="/tags/tardis.html">tardis</a>, <a href="/tags/fp.html">fp</a></i>
+		  
+		</div>
+		
+		
+		<p><i><span>25</span> февраля 2016</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2016-02-25--meetup--tardis.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2016-02-25--meetup--tardis.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Thu, 25 Feb 2016 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2016-02-25--meetup--tardis.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+<item>
+    <title>Праздничный митап</title>
+    <link>http://lambdasoft.ru/posts/2015-12-24--announce.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>Итак, дорогой лямбда-друг, завтра пятница (25.12.15), а это значит, что именно завтра, в 19:00, в офисе Лямбды, будет наша встреча. У нас, кстати, отличная новость - уже есть победитель Лямбда-конкурса! В данный момент мы связываемся с ним (планируется видеоконференция).</p>
+<!--more-->
+<div class="figure">
+<img src="http://cs630816.vk.me/v630816710/76f1/sz-6Pk9KZcU.jpg" />
+
+</div>
+<p>Раздача призов, интересное общение, просмотр крутейшей короткометражки, обсуждение итогов уходящего года и тёплая Лямбда-атмосфера.</p>
+<p>Будем рады видеть всех.</p>
+<p>Вперед и вверх, друзья!</p>
+<p>Ждём вас в нашем Лямбда-офисе, по адресу г. Казань. Ул. Чистопольская 20/12.</p>
+
+		<div class="info">
+		  
+		  <i><a href="/tags/meetup.html">meetup</a>, <a href="/tags/%D0%BF%D1%80%D0%B0%D0%B7%D0%B4%D0%BD%D0%B8%D0%BA.html">праздник</a></i>
+		  
+		</div>
+		
+		
+		<p><i><span>24</span> декабря 2015</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2015-12-24--announce.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2015-12-24--announce.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Thu, 24 Dec 2015 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2015-12-24--announce.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+<item>
+    <title>Праздничный митап</title>
+    <link>http://lambdasoft.ru/posts/2015-12-18--announce--festive.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>Дорогой, функциональный друг! В последнюю пятницу 2015-го мы проводим наш очередной, но на этот раз необычный, праздничный митап.</p>
+<p>Ждем всех, кто приходил к нам в течение года, зовите коллег. В программе: награждение победителей Лямбда-конкурса таки годными Лямбда-призами. Уже есть первые результаты и сейчас самое время немного размяться и поучаствовать в битве за интерес и призы!</p>
+<!--more-->
+<p>Читайте <a href="http://lambdasoft.ru/posts/2015-12-04--contest--coins.html">наш блог</a>.</p>
+<p>Очевидно, будет видеоконференция с иногородними участниками и просмотр небольшого, но очень интересного фильма. Планируем вести трансляцию в нашем аккаунте перископа.</p>
+<p>В целом, будем подводить итоги года и строить планы на будущее. Ждём вас в нашем Лямбда-офисе, по адресу г. Казань. Ул. Чистопольская 20/12.</p>
+
+		<div class="info">
+		  
+		  <i><a href="/tags/meetup.html">meetup</a>, <a href="/tags/%D0%BF%D1%80%D0%B0%D0%B7%D0%B4%D0%BD%D0%B8%D0%BA.html">праздник</a></i>
+		  
+		</div>
+		
+		
+		<p><i><span>18</span> декабря 2015</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2015-12-18--announce--festive.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2015-12-18--announce--festive.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Fri, 18 Dec 2015 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2015-12-18--announce--festive.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+<item>
+    <title>Конкурс продлён</title>
+    <link>http://lambdasoft.ru/posts/2015-12-11--contest--prolonged.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p><a href="/posts/2015-12-04--contest--coins.html">Конкурс</a> <a href="/posts/2015-12-02--contest--rules.html">продлён</a> до 21 декабря 2015 г.</p>
+<p>Ещё целых десять дней, чтобы решить задачу и получить эти замечательные призы!</p>
+<div class="figure">
+<img src="http://cs633319.vk.me/v633319710/3228/8FV3yTfBGws.jpg" />
+
+</div>
+<!--more-->
+
+		<div class="info">
+		  
+		  <i><a href="/tags/fp.html">fp</a>, <a href="/tags/contest.html">contest</a></i>
+		  
+		</div>
+		
+		
+		<p><i><span>11</span> декабря 2015</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2015-12-11--contest--prolonged.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2015-12-11--contest--prolonged.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Fri, 11 Dec 2015 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2015-12-11--contest--prolonged.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+<item>
+    <title>Конкурс</title>
+    <link>http://lambdasoft.ru/posts/2015-12-04--contest--coins.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>— Осёл! — воскликнул Ахиллес. — Ты же мог озолотиться!</p>
+<p>— Ну, для этого надо уметь считать, — возразила Черепаха. — И не только геометрические прогрессии.</p>
+<div class="figure">
+<img src="/images/contest-0-achilles.jpg" alt="Ахиллес и Черепаха" />
+<p class="caption">Ахиллес и Черепаха</p>
+</div>
+<!--more-->
+<p>— Может, вы перестанете обо мне болтать, и поможете? — раздраженно сказал Мидас.</p>
+<h1 id="условие">Условие</h1>
+<p>— Значит, играли? — допытывался у Мидаса Ахиллес.</p>
+<p>— Играли. Правила такие. Я и Дионис по очереди создаём кратеры с вином и выпиваем. В кратере должно быть целое число… э…</p>
+<p>— Литров, может быть? — подсказала Черепаха.</p>
+<p>— Ага, целое число этих ваших литров. Нельзя, чтобы объём нового кратера был линейной комбинацией объёмов предыдущих с натуральными коэффициентами.</p>
+<p>— Чего? — Ахиллес, похоже, не понял последнюю фразу.</p>
+<p>— Ну вот так договорились, — огрызнулся Мидас. — Я тоже вначале не понял, но после первой пары кратеров догнал.</p>
+<p>— Кхе-кхе!</p>
+<p>— Ну ладно. Кто сходил неправильно, тот проигрывает, — продолжил Мидас. — И кто создаёт кратер в один… э… литр, тот… э… тоже проигрывает.</p>
+<p>— Всего-то! Я бы сыграл! Когда следующий симпозиум? — Ахиллес явно был не прочь выпить.</p>
+<p>— Ну-ну, — скептически отнесся к его желанию Мидас, — я вот больше играть не буду с Вакхом: так и помереть недолго.</p>
+<p>— Ну вот…</p>
+<p>— На что вы играли-то? — поинтересовалась тут Черепаха.</p>
+<p>— Кто проигрывает, тот подковывает какое-нибудь мелкое насекомое — грустно отозвался Мидас.</p>
+<h1 id="формальности">Формальности</h1>
+<p>Полные правила участия в Конкурсе <a href="http://lambdasoft.ru/posts/2015-12-02--contest--rules.html">здесь</a></p>
+<h2 id="формат-входных-данных">Формат входных данных</h2>
+<p>На стандартный вход программе будет подаваться набор положительных целых чисел, разделённых пробелами — объёмы кратеров в литрах, которые были созданы ранее.</p>
+<h2 id="формат-выходных-данных">Формат выходных данных</h2>
+<p>Программа должна вывести единственное целое число — объём кратера, который нужно создать, в литрах.</p>
+<h2 id="как-присылать-решения">Как присылать решения</h2>
+<p>Присылайте ваши решения (их исходный код) по адресу <a href="mailto:contests@lambdasoft.ru">contests@lambdasoft.ru</a>.</p>
+<p>Если ваше решение написано на каком-нибудь эзотерическом языке программирования (таком как C/C++, C#, Java), опишите ещё и процедуру компиляции.</p>
+<h2 id="что-решение-может-делать-и-чего-делать-не-должно">Что решение может делать и чего делать не должно</h2>
+<p>Решения могут использовать стандартные библиотеки того языка программирования, на котором они написаны. Решения не могут использовать дополнительные библиотеки.</p>
+<p>Решения не должны использовать средства работы с файлами, сетью, запуска системных функций (кроме тех, которые необходимы для запуска программы и для получения случайных чисел). Решения, которые не удовлетворяют указанному ограничению, могут быть дисквалифицированы.</p>
+<p>О решении может быть потребована дополнительная информация. В случае её непредоставления в недельный срок решение может быть исключено из проверки.</p>
+<h2 id="призы">Призы</h2>
+<div class="figure">
+<img src="http://cs633319.vk.me/v633319710/3228/8FV3yTfBGws.jpg" />
+
+</div>
+<p>Успехов!</p>
+<h1 id="уточнения">Уточнения</h1>
+<p>UPD 2015-12-04. Натуральные числа — это числа 0, 1, 2, …</p>
+<p>UPD 2015-12-06. Решения будут проверяться на корректных входных данных. Объёмы не превосходят <span class="math inline">2<sup>30</sup></span></p>
+
+		<div class="info">
+		  
+		  <i><a href="/tags/fp.html">fp</a>, <a href="/tags/contest.html">contest</a></i>
+		  
+		</div>
+		
+		
+                <p><i>Мансур Зиятдинов</i></p>
+		
+		<p><i><span> 4</span> декабря 2015</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2015-12-04--contest--coins.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2015-12-04--contest--coins.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Fri, 04 Dec 2015 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2015-12-04--contest--coins.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+<item>
+    <title>Правила конкурса 4 декабря 2015 г.</title>
+    <link>http://lambdasoft.ru/posts/2015-12-02--contest--rules.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<h1 id="общие-положения">Общие положения</h1>
+<p>Конкурс по программированию (далее — Конкурс) проводится компанией Lambda (далее — Lambda) с целью повышения уровня программирования в функциональном стиле в России и, в частности, в г. Казани.</p>
+<p>Конкурс проводится с 4 декабря 2015 г. по 21 декабря 2015 г. Итоги Конкурса будут подведены 25 декабря 2015 г. В случае большого количества участников итоги могут подведены позднее; в этом случае на <a href="http://lambdasoft.ru">сайте Lambda</a> будет вывешено сообщение.</p>
+<p>В Конкурсе могут принимать участие все желающие, кроме сотрудников Lambda. Участие в Конкурсе подразумевает согласие с настоящими Правилами.</p>
+<p>Для участия в Конкурсе необходимо отправить на электронную почту <a href="mailto:contest@lambdasoft.ru">contest@lambdasoft.ru</a> решение задачи, которая будет опубликована на <a href="http://lambdasoft.ru">сайте Lambda</a> 4 декабря 2015 г. в 20.00, в период с 4 декабря 2015 г. по 23:59 21 декабря 2015 г. В письме следует указать свои контактные данные и, если язык не является распространенным, способ компиляции решения.</p>
+<p>В случае отправки одним участников нескольких решений в конкурсе будет участвовать последнее отправленное им.</p>
+<h1 id="требования-к-решениям">Требования к решениям</h1>
+<p>Решения могут использовать стандартные библиотеки того языка программирования, на котором они написаны. Решения не могут использовать дополнительные библиотеки.</p>
+<p>Решения не должны использовать средства работы с файлами, сетью, запуска системных функций (кроме тех, которые необходимы для запуска программы и для получения случайных чисел). Решения, которые не удовлетворяют указанному ограничению, могут быть дисквалифицированы.</p>
+<p>О решении может быть потребована дополнительная информация. В случае её непредоставления в недельный срок решение может быть исключено из проверки.</p>
+<h1 id="процедура-проверки-решений">Процедура проверки решений</h1>
+<p>Информация обо всех полученных решениях будет вывешена на <a href="http://lambdasoft.ru">сайте Lambda</a>.</p>
+<p>После этого все решения будут участвовать в турнире по швейцарской системе с <span class="math inline">log<em>N</em> + 3</span> турами, где <span class="math inline"><em>N</em></span> — количество решений.</p>
+<p>Начальный порядок участников будет определён случайным образом.</p>
+<p>Информация о результатах после первой половины туров будет опубликована на <a href="http://lambdasoft.ru">сайте Lambda</a>. Информация об боях второй половины туров будет опубликована после оглашения итoroвых результатов.</p>
+<p>Каждый бой состоит из 23 запусков одного решения против другого. При этом решения начинают игру поочерёдно.</p>
+<p>В десяти запусках решения начинают без заданных ходов, в семи запусках начальные ходы заданы заранее и в шести запусках начальные ходы выбираются случайным образом.</p>
+<p>В бою побеждает то решение, которое победит в большем количестве запусков.</p>
+<p>Каждый запуск состоит из поочерёдных ходов решений. На ход отведено не более одной секунды. Во время хода решение должно использовать не более 64 Мб памяти.</p>
+<h1 id="изменение-правил-конкурса">Изменение правил Конкурса</h1>
+<p>При уточнении или ином изменении правил на <a href="http://lambdasoft.ru">сайте Lambda</a> будет размещено объявление об этом; кроме того, данный документ будет изменён.</p>
+<h1 id="обновления">Обновления</h1>
+<p>UPD 2015-12-04. По просьбе Максима Зималиева уточнение: всё, что обычно вы используете, вы можете использовать при решении</p>
+<p>UPD 2015-12-11. Конкурс продлён до 21 декабря.</p>
+
+		<div class="info">
+		  
+		  <i><a href="/tags/contest.html">contest</a>, <a href="/tags/fp.html">fp</a>, <a href="/tags/%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0.html">правила</a></i>
+		  
+		</div>
+		
+		
+                <p><i>Lambda</i></p>
+		
+		<p><i><span> 2</span> декабря 2015</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2015-12-02--contest--rules.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2015-12-02--contest--rules.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Wed, 02 Dec 2015 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2015-12-02--contest--rules.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+<item>
+    <title>Servant. Типобезопасное API или безопасность на уровне типов</title>
+    <link>http://lambdasoft.ru/posts/2015-12-01--meetup--haskell.html</link>
+    <description><![CDATA[    <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>Друзья! 04 декабря, в пятницу, в 19:00 в уютном офисе Lambda, мы ждём всех, кто живёт, работает и развивается в функциональном мире. Всех, кто знает ответ на вопрос “Сколько монад в слове <лимонад>?”</p>
+<p>Мы ждём также и тех, кто уже краем своего функционального уха слышал, что именно в этот день мы стартанём “Lambda-конкурс” по программированию и объявим его условия,покажем девайсы-призы (угадайте какие?) и наполним дворцы Вашей памяти функциями высшего порядка.</p>
+<p>Вкуснейшие DataKinds, Type Families, Symbols, type operators, monad transformers и другие няшные возможности Haskell ждут Вас в многослойном пироге доклада Мансур Зиятдинов “Servant. Типобезопасное API или безопасность на уровне типов”</p>
+<p>Спикер: Мансур Зиятдинов</p>
+<p>Когда: 04 декабря (ПТ), 19:00</p>
+<p>Где: Чистопольская 20/12, офис Lambda 2 этаж</p>
+<div class="figure">
+<img src="https://pp.vk.me/c631819/v631819710/6da/KnV3_SolWxk.jpg" />
+
+</div>
+<div class="figure">
+<img src="/images/2015-12-04-mansur.jpg" />
+
+</div>
+
+		<div class="info">
+		  
+		  <i><a href="/tags/%D0%B0%D0%BD%D0%BE%D0%BD%D1%81.html">анонс</a>, <a href="/tags/%D0%BC%D0%B8%D1%82%D0%B0%D0%BF.html">митап</a>, <a href="/tags/haskell.html">haskell</a>, <a href="/tags/DataKinds.html">DataKinds</a>, <a href="/tags/Type%20Families.html">Type Families</a>, <a href="/tags/Symbols.html">Symbols</a>, <a href="/tags/type%20operators.html">type operators</a>, <a href="/tags/monad%20transformers.html">monad transformers</a></i>
+		  
+		</div>
+		
+		
+		<p><i><span> 1</span> декабря 2015</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2015-12-01--meetup--haskell.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2015-12-01--meetup--haskell.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+]]></description>
+    <pubDate>Tue, 01 Dec 2015 00:00:00 UT</pubDate>
+    <guid>http://lambdasoft.ru/posts/2015-12-01--meetup--haskell.html</guid>
+    <dc:creator>Lambdasoft</dc:creator>
+</item>
+
+    </channel>
+</rss>

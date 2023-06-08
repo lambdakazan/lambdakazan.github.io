@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content>
+    <meta name="author" content>
+
+    <title>\ -&gt; Tardis</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <!-- Highlight js -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/styles/darkula.min.css">
+
+    <!-- Custom CSS -->
+    <link href="../css/clean-blog.min.css" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+    <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Lora:400,400italic,700,700italic&subset=latin,cyrillic" rel="stylesheet" type="text/css">
+    <link href="http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&subset=latin,cyrillic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Anonymous+Pro&subset=latin,cyrillic" rel="stylesheet" type="text/css">
+
+    <link rel="alternate" type="application/rss+xml" title="RSS" href="http://lambdasoft.ru/feed.xml">
+    
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header page-scroll">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+		    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="../"><img src="../images/logo-header.png" /><center>Lambda</center></a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="../index.html">Блог</a>
+                    </li>
+		    <li>
+		        <a href="../tags.html">Тэги</a>
+                    <li>
+                        <a href="../about.html">О нас</a>
+                    </li>
+                    <li>
+                        <a href="../contact.html">Контакты</a>
+                    </li>
+                </ul>
+            </div>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container -->
+    </nav>
+
+    <!-- Page Header -->
+    <!-- Set your background image for this header on the line below. -->
+    <header class="intro-header" style="background-image: url('/img/home-bg.jpg')">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                    <div class="site-heading">
+                        <h1>Tardis</h1>
+                        <hr class="small">
+			  
+                          <span class="subheading">Программируем на <s>монаде</s> машине времени</span>
+			  
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+      <div class="row">
+	<div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+	      <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>Этот пост написан по материалам митапа, прошедшего 26 февраля в Lambda.</p>
+<p>Tardis - монада, которая позволяет вычислять, используя путешествия во времени. Она представляет собой объединение монады State и монады RState, которая «протягивает» состояние в обратном направлении. Далее мы рассмотрим простые примеры, немного поговорим о научных исследованиях в области Computer Science и не только, увидим Tardis изнутри и узнаем, что эта библиотека пригодна не только для написания эзотерических программ, но и для полезных в хозяйстве трюков.</p>
+<!--more-->
+<p>Мы рассмотрим нескольких простых примеров, которые отпугнут начинающих, затем углубимся в пространство Минковского и практически по замкнутой времениподобной кривой вернёмся к Tardis, рассмотрев применение этой монады к компиляторам.</p>
+<h1 id="простые-бессмысленные-примеры">Простые бессмысленные примеры</h1>
+<p>Простейший пример работы с Tardis выглядит так:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ex1 ::</span> <span class="dt">Tardis</span> <span class="dt">Int</span> <span class="dt">Double</span> <span class="dt">String</span>
+ex1 <span class="fu">=</span> <span class="kw">do</span>
+  a <span class="ot">&lt;-</span> getFuture
+  sendFuture <span class="fl">0.5</span>
+  b <span class="ot">&lt;-</span> getPast
+  sendPast <span class="dv">10</span>
+  return <span class="fu">$</span> show a <span class="fu">++</span> <span class="st">&quot; &quot;</span> <span class="fu">++</span> show b</code></pre></div>
+<p>Здесь мы получаем <code>a</code> из будущего, отправляем <code>0.5</code> в будущее, получаем <code>b</code> из прошлого (т.е. <code>0.5</code>) и отправляем в прошлое <code>10</code> (т.е. <code>a</code> получает значение <code>10</code>). В итоге будет возвращено <code>&quot;10 0.5&quot;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ex2 ::</span> <span class="dt">Tardis</span> [<span class="dt">Int</span>] () [<span class="dt">Int</span>]
+ex2 <span class="fu">=</span> <span class="kw">do</span>
+  <span class="co">-- получаем числа Фибоначчи из будущего</span>
+  fibs <span class="ot">&lt;-</span> getFuture
+  <span class="co">-- меняем то, что движется из будущего на кумулятивные суммы:</span>
+  <span class="co">-- 1, 0, 1, 2, 3, 5, 8, 13 -&gt; 1, 2, 3, 5, 8, 13</span>
+  modifyBackwards <span class="fu">$</span> scanl (<span class="fu">+</span>) <span class="dv">0</span>
+  <span class="co">-- отправляем в прошлое числа Фибоначчи:</span>
+  <span class="co">-- 1, 2, 3, 5, 8, 13</span>
+  sendPast <span class="fu">$</span> <span class="dv">1</span><span class="fu">:</span>fibs
+  return fibs</code></pre></div>
+<p>Ещё пример:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ex3 ::</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">Tardis</span> <span class="dt">Double</span> (<span class="dt">Double</span>,<span class="dt">Int</span>) [<span class="dt">Double</span>]
+ex3 [] <span class="fu">=</span> return []
+ex3 (x<span class="fu">:</span>xs) <span class="fu">=</span> <span class="kw">do</span>
+  <span class="co">-- получаем среднее из будущего</span>
+  avg <span class="ot">&lt;-</span> getFuture
+  <span class="co">-- меняем то, что отправлено в будущее,</span>
+  <span class="co">-- добавив к сумме элемент и к количеству единицу</span>
+  modifyForwards <span class="fu">$</span> \(s, n) <span class="ot">-&gt;</span> (s<span class="fu">+</span>x, n<span class="fu">+</span><span class="dv">1</span>)
+  <span class="co">-- повторяем рекурсивно оставшегося списка</span>
+  rest <span class="ot">&lt;-</span> ex3 xs
+  <span class="co">-- получаем из прошлого сумму и количество</span>
+  (s,n) <span class="ot">&lt;-</span> getPast
+  <span class="co">-- отправляем в прошлое среднее</span>
+  sendPast <span class="fu">$</span> s<span class="fu">/</span>fromIntegral n
+  <span class="co">-- возвращаем список с элементами, уменьшенными на среднее</span>
+  return <span class="fu">$</span> (x<span class="fu">-</span>avg) <span class="fu">:</span> rest</code></pre></div>
+<h1 id="немного-науки">Немного науки</h1>
+<blockquote>
+<div class="figure">
+<img src="http://media.mnn.com/assets/images/2013/12/hawkinginvite.jpg" />
+
+</div>
+</blockquote>
+<p>Хотя может показаться, что Tardis — просто игрушка и годится только для написания эзотерических программ для смущения неокрепших умов, но на самом деле возможности компьютеров при наличии путешествий во времени — интересная математическая задача, конечно, не столь близкая к практике как квантовые компьютеры, но всё же стоящая рассмотрения.</p>
+<h2 id="по-мировым-линиям">По мировым линиям…</h2>
+<p>Дорогие читатели, вам, конечно же, известно, что специальная теория относительности запрещает движение со скоростью, большей скорости света. Поэтому не все прямые линии в четырёхмерном пространстве Минковского описывают движение материальных частиц — некоторые из них наклонены сильнее, чем линии света, т.е. сдвигаясь на одну секунду по временно́й координате, мы сдвигаемся более, чем на 300000 м в пространственных координатах. Соответственно, все линии делятся на времениподобные (находятся внутри светового конуса), светоподобные (на световом конусе), пространственноподобные (вне светового конуса). Поскольку все взаимодействия распространяются не быстрее скорости света, мы можем повлиять только на те события, которые находятся внутри светового конуса будущего, и наоборот, только те события, которые находятся внутри светового конуса прошлого, могли влиять на нас.</p>
+<p>В общей теории относительности всё становится ещё более интересным. Четырёхмерное пространство может быть искривлено распределением масс, которое само меняется по геометрии пространства. Для нас важно то, что в результате световые конусы в разных точках могут отличаться: быть наклонёнными друг относительно друга или иметь разный раствор конуса.</p>
+<div class="figure">
+<img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Lorentz_transform_of_world_line.gif" alt="Демонстрация на странице https://en.wikipedia.org/wiki/World_line" />
+<p class="caption">Демонстрация на странице https://en.wikipedia.org/wiki/World_line</p>
+</div>
+<p>В некоторых решениях уравнений Эйнштейна пространство искривлено так, что некоторые мировые линии могут быть замкнутыми. Таким образом, для тел на этих линиях прошлое — это и будущее. Можно сказать, у них там бесконечный день сурка.</p>
+<div class="figure">
+<img src="../images/2016-03-05-groundhog.gif" alt="Замкнутая времениподобная гифка" />
+<p class="caption">Замкнутая времениподобная гифка</p>
+</div>
+<h2 id="к-путешествиям-во-времени">…к путешествиям во времени…</h2>
+<p>Достаточно логичной позицией является принцип самосогласованности Новикова, который утверждает, что допустимы лишь самосогласованные решения уравнений. Например, нельзя запустить бильярдный шар в кротовую нору так, чтобы он вылетел из неё и ударил себя в прошлом, чтобы он не попал в кротовую нору и т.д. После того, как мы запустим шар, он вылетит из кротовой норы и ударит себя так, чтобы попасть в кротовую нору под углом, необходимым для того, чтобы вылететь из кротовой норы и ударить себя в прошлом так, как нужно. В общем, убить своего собственного дедушку нельзя. Получается что-то вроде самосбывающихся пророчеств. Например, Акрисию говорят, что его внук его убьёт, поэтому Акрисий бросает в море внука в ящике, но тот выживает, вырастает, возвращается в город и убивает Акрисия на соревнованиях. Такие дела.</p>
+<h2 id="и-вычислениям">…и вычислениям</h2>
+<p>В общем, получается, что пространство-время само вычисляет неподвижную точку какого-нибудь преобразования. Это разумеется, можно использовать для вычислений, так же, как квантовый компьютер использует быстрое «вычисление» каких-либо гамильтонианов природой. Например, Дэвид Дойч показал <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, что замкнутую времениподобную кривую можно использовать для решения задач из NP за полиномиальное время.</p>
+<p>Позже Скотт Ааронсон доказал, что, на самом деле, этого достаточно даже для решения за полиномиальное время задач из PSPACE, т.е. таких, которые могут быть решены машиной Тьюринга с полиномиальной лентой <a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a><a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>.</p>
+<h2 id="disclaimer-это-не-решает-pnp">DISCLAIMER! Это не решает P=NP</h2>
+<p>Разумеется, наличие Tardis не «доказывает», что P=NP. Если бы и удалось промоделировать вычисления выше, они бы выполнялись полным перебором, за экспоненциальное время.</p>
+<h1 id="tardis-изнутри">Tardis изнутри</h1>
+<p>Давайте посмотрим, как устроен Tardis. Мы начнём с монад, увидим работу монад State и Reverse State, рассмотрим класс MonadFix и неподвижные точки и, наконец, перейдём к Tardis.</p>
+<blockquote>
+<p>Монада — это моноид в категории эндофункторов (фольклор)</p>
+</blockquote>
+<p>Монада — это класс типов с операциями return, которая оборачивает «чистое» значение в монаду, и bind, которая позволяет преобразовывать значения внутри монады, используя функцию, получающую «чистое» значение и возвращающую монадическое.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">return<span class="ot"> ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> m a
+<span class="ot">(&gt;&gt;=) ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b</code></pre></div>
+<p>Рассмотрим, например, монаду State, которая используется для представления состояния в функциональном языке. Здесь определение монады из пакета transformers немного упрощено.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">State</span> s a <span class="fu">=</span> <span class="dt">State</span> {<span class="ot"> runState ::</span> s <span class="ot">-&gt;</span> (a,s) }</code></pre></div>
+<p>Мы можем определить операции так:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Monad</span> (<span class="dt">State</span> s) <span class="kw">where</span>
+  return a <span class="fu">=</span> <span class="dt">State</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> (a,s)
+  m <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> <span class="dt">State</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+    (a,s') <span class="fu">=</span> runState m s
+    (b,s'') <span class="fu">=</span> runState (f a) s'
+    <span class="kw">in</span> (b, s'')</code></pre></div>
+<p>Оборачивание значения никак не влияет на состояние, а для связывания мы запускаем вычисление и получаем новое состояние, которое и подаётся на дальшейшим вычислениям. Добавив несколько вспомогательных функций для получения и установки состояния, мы получим удобный инструмент для программирования.</p>
+<p>Но что, если мы будет передавать состояние не вниз по коду, а вверх?</p>
+<p>Заработает ли это?</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">RState</span> s a <span class="fu">=</span> <span class="dt">RState</span> {<span class="ot"> runRState ::</span> s <span class="ot">-&gt;</span> (a,s) }
+
+<span class="kw">instance</span> <span class="dt">Monad</span> (<span class="dt">RState</span> s) <span class="kw">where</span>
+    return x <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> (,) x
+    <span class="dt">RState</span> sf <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span>
+        <span class="kw">let</span> (a,s'') <span class="fu">=</span> sf s'
+            (b,s') <span class="fu">=</span> runRState (f a) s
+        <span class="kw">in</span> (b,s'')</code></pre></div>
+<p>Да, потому что связывания в let выполняются лениво. Рассмотрим простейший пример.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="kw">do</span>
+  a <span class="ot">&lt;-</span> get
+  put <span class="dv">1</span>
+  return a</code></pre></div>
+<p>Если этот пример записать без синтаксического сахара, получим</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> get <span class="fu">&gt;&gt;=</span> \a <span class="ot">-&gt;</span> put <span class="dv">1</span> <span class="fu">&gt;&gt;=</span> \_ <span class="ot">-&gt;</span> return a</code></pre></div>
+<p>Заменив <code>(&gt;&gt;=)</code> и <code>return</code> на их определения, получаем</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s'') <span class="fu">=</span> (\s <span class="ot">-&gt;</span> (s,s)) s'
+  (b,s')  <span class="fu">=</span> runRState ((\a <span class="ot">-&gt;</span> put <span class="dv">1</span> <span class="fu">&gt;&gt;=</span> \_ <span class="ot">-&gt;</span> <span class="dt">RState</span> (\s <span class="ot">-&gt;</span> (a,s))) a) s
+  <span class="kw">in</span> (b,s'')</code></pre></div>
+<p>Преобразуя, получаем</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s'') <span class="fu">=</span> (s',s')
+  (b,s')  <span class="fu">=</span> runRState (put <span class="dv">1</span> <span class="fu">&gt;&gt;=</span> \_ <span class="ot">-&gt;</span> <span class="dt">RState</span> (\s <span class="ot">-&gt;</span> (a,s))) s
+  <span class="kw">in</span> (b,s'')</code></pre></div>
+<p>Заменив внутреннию (&gt;&gt;=), получаем</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s'') <span class="fu">=</span> (s',s')
+  (b,s')  <span class="fu">=</span> runRState (<span class="dt">RState</span> <span class="fu">$</span> \t <span class="ot">-&gt;</span> <span class="kw">let</span>
+                          (c,t'') <span class="fu">=</span> (\_ <span class="ot">-&gt;</span> ((),<span class="dv">1</span>)) t'
+                          (d,t') <span class="fu">=</span> runRState ((\_ <span class="ot">-&gt;</span> <span class="dt">RState</span> (\s <span class="ot">-&gt;</span> (a,s))) c) t
+                      <span class="kw">in</span> (d,t'')) s
+  <span class="kw">in</span> (b,s'')</code></pre></div>
+<p>Упрощая, получаем</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s'') <span class="fu">=</span> (s',s')
+  (b,s')  <span class="fu">=</span> runRState (<span class="dt">RState</span> <span class="fu">$</span> \t <span class="ot">-&gt;</span> <span class="kw">let</span>
+                          (c,t'') <span class="fu">=</span> ((),<span class="dv">1</span>)
+                          (d,t') <span class="fu">=</span> runRState (<span class="dt">RState</span> (\s <span class="ot">-&gt;</span> (a,s))) t
+                      <span class="kw">in</span> (d,t'')) s
+  <span class="kw">in</span> (b,s'')</code></pre></div>
+<p>И далее</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s'') <span class="fu">=</span> (s',s')
+  (b,s')  <span class="fu">=</span> (\t <span class="ot">-&gt;</span> <span class="kw">let</span>
+                (c,t'') <span class="fu">=</span> ((),<span class="dv">1</span>)
+                (d,t') <span class="fu">=</span> (\s <span class="ot">-&gt;</span> (a,s)) t
+                <span class="kw">in</span> (d,t'')) s
+  <span class="kw">in</span> (b,s'')</code></pre></div>
+<p>В итоге получаем следующее определение</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">=</span> <span class="dt">RState</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span>
+  (a,s'') <span class="fu">=</span> (s',s')
+  (b,s')  <span class="fu">=</span> (a,<span class="dv">1</span>)
+  <span class="kw">in</span> (b,s'')</code></pre></div>
+<p>Здесь уже видно, что <code>b = a</code> и <code>a = s' = s'' = 1</code>. Поэтому вызов <code>runRState f 0</code> вернёт <code>(1,1)</code></p>
+<p>На самом деле всё чуть сложнее. Tardis не просто монада, а трансформер монад. Это означает, что наши функции (runState и runRState) могут работать не над чистыми значениями, а в какой-то другой монаде. Поэтому мы не можем использовать let, поскольку внутри должны быть монадические вычисления.</p>
+<p>Для того, чтобы всё заработало, служит класс типов MonadFix. В нём есть операция <code>mfix</code>, которая позволяет за один шаг получить неподвижную точку преобразования <code>a -&gt; m a</code>.</p>
+<p>Класс MonadFix в свою очередь основан на классе ArrowLoop с функцией <code>loop</code>. Её можно представить себе как схему из функциональных элементов, в которой некоторые выходы могут поданы обратно на входы. То, что (стабильно) получается на остальных выходах — результат работы функции <code>loop</code>.</p>
+<p>Tardis — просто объединение монад State и RState, работающих над монадой <code>m</code>, являющейся монадой с неподвижной точкой:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">MonadFix</span> m <span class="ot">=&gt;</span> <span class="dt">Monad</span> (<span class="dt">TardisT</span> bw fw m) <span class="kw">where</span>
+  return x <span class="fu">=</span> tardis <span class="fu">$</span> \s <span class="ot">-&gt;</span> (x, s)
+  m <span class="fu">&gt;&gt;=</span> f  <span class="fu">=</span> <span class="dt">TardisT</span> <span class="fu">$</span> \ <span class="fu">~</span>(bw, fw) <span class="ot">-&gt;</span> <span class="kw">do</span>
+    rec (x,  <span class="fu">~</span>(bw'', fw' )) <span class="ot">&lt;-</span> runTardisT m (bw', fw)
+        (x', <span class="fu">~</span>(bw' , fw'')) <span class="ot">&lt;-</span> runTardisT (f x) (bw, fw')
+    return (x', (bw'', fw''))</code></pre></div>
+<p>Ключевое слово <code>rec</code> — такой же синтаксический сахар для <code>MonadFix</code>, как <code>do</code> — синтаксический сахар для <code>Monad</code>. Здесь значение типа <code>fw</code> движется вниз по коду, как состояние в монаде State, а значение типа <code>bw</code> — вверх, как в RState.</p>
+<h1 id="сложный-но-практический-пример">Сложный, но практический пример</h1>
+<p>Рассмотрим язык обычных формул</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="dt">Add</span> <span class="dt">Term</span> <span class="dt">Term</span>
+          <span class="fu">|</span> <span class="dt">Mul</span> <span class="dt">Term</span> <span class="dt">Term</span>
+          <span class="fu">|</span> <span class="dt">Const</span> <span class="dt">Int</span>
+          <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>)
+<span class="kw">type</span> <span class="dt">Value</span> <span class="fu">=</span> <span class="dt">Int</span></code></pre></div>
+<p>У нас есть сложение, умножение и константы. Вычислять мы будем в целые числа. Само вычисление, разумеется, производится тривиально.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">interp0 ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Identity</span> <span class="dt">Value</span>
+interp0 (<span class="dt">Add</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp0 f
+  y <span class="ot">&lt;-</span> interp0 g
+  return <span class="fu">$</span> x<span class="fu">+</span>y
+interp0 (<span class="dt">Mul</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp0 f
+  y <span class="ot">&lt;-</span> interp0 g
+  return <span class="fu">$</span> x<span class="fu">*</span>y
+interp0 (<span class="dt">Const</span> x) <span class="fu">=</span> return x</code></pre></div>
+<p>Никаких нетривиальных монад тут нет, только Identity, которая, как и понятно из её названия, ничего не делает. Если формула — сложение двух подформул, мы вычисляем их значения и складываем, если умножение — вычисляем и умножаем, если константа — возвращаем её.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">runIdentity (interp0 <span class="fu">$</span>
+	<span class="dt">Mul</span>
+		(<span class="dt">Add</span>
+			(<span class="dt">Add</span> (<span class="dt">Const</span> <span class="dv">1</span>) (<span class="dt">Const</span> <span class="dv">1</span>))
+			(<span class="dt">Const</span> <span class="dv">1</span>))
+		(<span class="dt">Const</span> <span class="dv">3</span>))
+<span class="dv">9</span></code></pre></div>
+<p>Теперь добавим подсчёт шагов. Один шаг — это выполнение одного сложения или умножения.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">interp1 ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Tardis</span> () <span class="dt">Int</span> <span class="dt">Value</span>
+interp1 (<span class="dt">Add</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp1 f
+  y <span class="ot">&lt;-</span> interp1 g
+  modifyForwards (<span class="fu">+</span><span class="dv">1</span>)
+  return <span class="fu">$</span> x<span class="fu">+</span>y
+interp1 (<span class="dt">Mul</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp1 f
+  y <span class="ot">&lt;-</span> interp1 g
+  modifyForwards (<span class="fu">+</span><span class="dv">1</span>)
+  return <span class="fu">$</span> x<span class="fu">*</span>y
+interp1 (<span class="dt">Const</span> x) <span class="fu">=</span> return x</code></pre></div>
+<p>По сути, мы используем монаду State для хранения количества выполненных шагов и для этого после вычисления значения подформул мы добавляем единицу к хранимому в состоянии числу. Пока всё просто, даже для императивных языков. Можно добавить терм для получения количества шагов из кода:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="fu">...</span>
+          <span class="fu">|</span> <span class="dt">Count</span>
+
+<span class="ot">interp1 ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Tardis</span> () <span class="dt">Int</span> <span class="dt">Value</span>
+<span class="fu">...</span>
+interp1 <span class="dt">Count</span> <span class="fu">=</span> getPast</code></pre></div>
+<p>Мы просто возвращаем в качестве значения формулы <code>Count</code> количество шагов на данный момент.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">runTardis (interp1 <span class="fu">$</span>
+	<span class="dt">Mul</span>
+		(<span class="dt">Add</span>
+			(<span class="dt">Add</span> (<span class="dt">Const</span> <span class="dv">1</span>) (<span class="dt">Const</span> <span class="dv">1</span>))
+			(<span class="dt">Const</span> <span class="dv">1</span>))
+		(<span class="dt">Const</span> <span class="dv">3</span>))
+	((),<span class="dv">0</span>)
+<span class="dv">9</span></code></pre></div>
+<p>Теперь добавим хитрую магию RState: подсчитаем количество шагов <em>до завершения</em> вычисления.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">interp2 ::</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Tardis</span> <span class="dt">Int</span> () <span class="dt">Value</span>
+interp2 (<span class="dt">Add</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp2 f
+  y <span class="ot">&lt;-</span> interp2 g
+  modifyBackwards (<span class="fu">+</span><span class="dv">1</span>)
+  return <span class="fu">$</span> x<span class="fu">+</span>y
+interp2 (<span class="dt">Mul</span> f g) <span class="fu">=</span> <span class="kw">do</span>
+  x <span class="ot">&lt;-</span> interp2 f
+  y <span class="ot">&lt;-</span> interp2 g
+  modifyBackwards (<span class="fu">+</span><span class="dv">1</span>)
+  return <span class="fu">$</span> x<span class="fu">*</span>y
+interp2 (<span class="dt">Const</span> x) <span class="fu">=</span> return x
+interp2 <span class="dt">Count</span> <span class="fu">=</span> getFuture</code></pre></div>
+<p>Практически ничего не изменилось, а наш код считает количество шагов до завершения вычисления! Как пишет Уодлер [Wadler 1991], «реализацию этого на императивном языке программирования мы оставляем мазохистичному читателю». Там же он указывает, что этот способ был найден при реализации «одного строкового алгоритма», т.е. эта задача не специфична для компиляторов.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">runTardis (interp2 <span class="fu">$</span>
+	<span class="dt">Mul</span>
+		(<span class="dt">Add</span>
+			(<span class="dt">Add</span> (<span class="dt">Const</span> <span class="dv">1</span>) (<span class="dt">Const</span> <span class="dv">1</span>))
+			(<span class="dt">Const</span> <span class="dv">1</span>))
+		(<span class="dt">Const</span> <span class="dv">3</span>))
+	(<span class="dv">0</span>,())
+<span class="dv">12</span></code></pre></div>
+<h1 id="библиография">Библиография</h1>
+<p>Код, которые стоит посмотреть:</p>
+<ul>
+<li><a href="https://hackage.haskell.org/package/tardis-0.3.0.0">tardis</a></li>
+<li><a href="https://github.com/DanBurton/tardis/blob/master/Control/Monad/Tardis/Example.hs">пример на Tardis</a></li>
+<li><a href="https://hackage.haskell.org/package/tardis-0.3.0.0/docs/src/Control-Monad-Trans-Tardis.html">документацию</a></li>
+<li><a href="https://hackage.haskell.org/package/transformers-0.4.3.0/docs/Control-Monad-Trans-State-Lazy.html">StateT</a></li>
+</ul>
+<p>При написании я использовал материалы:</p>
+<ul>
+<li>Wadler P. The essence of functional programming // <em>Proceedings of the 19th ACM SIGPLAN-SIGACT symposium on Principles of programming languages.</em> — ACM, 1992. — С. 1–14.</li>
+<li><a href="http://panicsonic.blogspot.ru/2007/12/backwards-state-or-power-of-laziness.html">Backwards State, or: The Power of Laziness</a></li>
+<li><a href="https://lukepalmer.wordpress.com/2008/08/10/mindfuck-the-reverse-state-monad/">Mindfuck: The Reverse State Monad</a></li>
+<li><a href="https://unknownparallel.wordpress.com/2012/11/05/bowling-on-a-tardis/">Bowling on a Tardis</a></li>
+<li><a href="https://unknownparallel.wordpress.com/2013/05/07/two-implementations-of-seers/">Two implementations of Seers</a></li>
+</ul>
+<p>Видео с выступления находится <a href="http://vk.com/wall-106273219_62">здесь</a>. Фото <a href="http://vk.com/wall-106273219_64">здесь</a>. Полный код (здесь)[https://github.com/lambdakazan/tardis-demo]</p>
+<p>Научные статьи о вычислениях при наличии замкнутых времениподобных кривых:</p>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><a href="http://journals.aps.org/prd/abstract/10.1103/PhysRevD.44.3197">David Deutsch. Quantum mechanics near closed timelike lines // Phys. Rev. D 44, 3197. –– 1991.</a><a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p><a href="http://www.scottaaronson.com/writings/limitsqc-draft.pdf">Scott Aaronson. The Limits of Quantum Computers // Scientific American — 298.3 — 2008</a><a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p><a href="http://www.scottaaronson.com/papers/ctc.pdf">Scott Aaronson, John Watrous. Closed Timelike Curves Make Quantum and Classical Computing Equivalent // Proceedings of the Royal Society of London A: Mathematical, Physical and Engineering Sciences. — Vol. 465. — No. 2102. — 2009.</a><a href="#fnref3">↩</a></p></li>
+</ol>
+</div>
+
+		<div class="info">
+		  
+		  <i><a href="../tags/fp.html">fp</a>, <a href="../tags/tardis.html">tardis</a>, <a href="../tags/meetup.html">meetup</a></i>
+		  
+		</div>
+		
+		
+                <p><i>Мансур Зиятдинов</i></p>
+		
+		<p><i><span> 5</span> марта 2016</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2016-03-05--tardis.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2016-03-05--tardis.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+
+	</div>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                    <ul class="list-inline text-center">
+		         <li>
+                            <a href="http://vk.com/lambdasoft">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fa fa-circle fa-stack-2x"></i>
+                                    <i class="fa fa-vk fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+			    <a href="https://telegram.me/lambdakazan">
+			      <span class="fa-stack fa-lg">
+                                    <i class="fa fa-circle fa-stack-2x"></i>
+                                    <i class="fa fa-paper-plane fa-stack-1x fa-inverse"></i>
+                              </span>
+			    </a>
+                        </li>
+                    </ul>
+                    <p class="copyright text-muted">Copyright &copy; Lambda, 2015-2016. <a href="http://lambdasoft.ru/feed.xml"><img src="http://www.rssboard.org/images/rss-icon.png" /></a></p>
+		    <p class="copyright text-muted"><small>Сайт сгенерирован при помощи <a href="http://hackage.haskell.org/package/hakyll">Hakyll</a><br />
+			Сайт использует тему <a href="http://startbootstrap.com/template-overviews/clean-blog/">Clean Blog</a></small></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- jQuery -->
+    <script src="../js/jquery.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="../js/bootstrap.min.js"></script>
+
+    <!-- Highlight js -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/highlight.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/languages/haskell.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+    <!-- Custom Theme JavaScript -->
+    <script src="../js/clean-blog.min.js"></script>
+
+
+    <!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function (d, w, c) {
+        (w[c] = w[c] || []).push(function() {
+            try {
+                w.yaCounter34056415 = new Ya.Metrika({
+                    id:34056415,
+                    clickmap:true,
+                    trackLinks:true,
+                    accurateTrackBounce:true,
+                    webvisor:true
+                });
+            } catch(e) { }
+        });
+
+        var n = d.getElementsByTagName("script")[0],
+            s = d.createElement("script"),
+            f = function () { n.parentNode.insertBefore(s, n); };
+        s.type = "text/javascript";
+        s.async = true;
+        s.src = "https://mc.yandex.ru/metrika/watch.js";
+
+        if (w.opera == "[object Opera]") {
+            d.addEventListener("DOMContentLoaded", f, false);
+        } else { f(); }
+    })(document, window, "yandex_metrika_callbacks");
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/34056415" style="position:absolute; left:-9999px;" alt /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+</body>
+
+</html>

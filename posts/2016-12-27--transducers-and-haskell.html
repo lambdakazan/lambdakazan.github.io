@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content>
+    <meta name="author" content>
+
+    <title>\ -&gt; Трансдьюсеры в Clojure</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <!-- Highlight js -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/styles/darkula.min.css">
+
+    <!-- Custom CSS -->
+    <link href="../css/clean-blog.min.css" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+    <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Lora:400,400italic,700,700italic&subset=latin,cyrillic" rel="stylesheet" type="text/css">
+    <link href="http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&subset=latin,cyrillic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Anonymous+Pro&subset=latin,cyrillic" rel="stylesheet" type="text/css">
+
+    <link rel="alternate" type="application/rss+xml" title="RSS" href="http://lambdasoft.ru/feed.xml">
+    
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header page-scroll">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+		    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="../"><img src="../images/logo-header.png" /><center>Lambda</center></a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="../index.html">Блог</a>
+                    </li>
+		    <li>
+		        <a href="../tags.html">Тэги</a>
+                    <li>
+                        <a href="../about.html">О нас</a>
+                    </li>
+                    <li>
+                        <a href="../contact.html">Контакты</a>
+                    </li>
+                </ul>
+            </div>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container -->
+    </nav>
+
+    <!-- Page Header -->
+    <!-- Set your background image for this header on the line below. -->
+    <header class="intro-header" style="background-image: url('/img/home-bg.jpg')">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                    <div class="site-heading">
+                        <h1>Трансдьюсеры в Clojure</h1>
+                        <hr class="small">
+			  
+                          <span class="subheading">и их отсутствие в Haskell</span>
+			  
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+      <div class="row">
+	<div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+	      <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>В процессе работы мы попробовали использовать трансдьюсеры (комбинируемые алгоритмические преобразования) для одной из задач и у нас появилась проблема, причём похожий вопрос на StackOverflow висит уже год, и в нём нет принятого ответа. В этом посте я попробую описать эту проблему с трансдьюсерами, её решения и то, как</p>
+<!--more-->
+<h1 id="что-такое-трансдьюсеры">Что такое трансдьюсеры?</h1>
+<p>Как указано на <a href="http://clojure.org/reference/transducers">странице трансдьюсеров</a>, это комбинируемые алгоритмические преобразования.</p>
+<p>Мы задаём отдельные шаги, например, применить к каждому элементу какую-либо функцию, оставить только элементы, удовлетворяющие предикату, отбросить пять первых элементов и т.п., а затем собираем эти шаги в единый трансдьюсер. При помощи стандартных функций <code>map</code>, <code>filter</code> и т.п. можно создавать трансдьюсеры, задающие отдельные шаги. Далее трансдьюсеры можно соединять с другими трансдьюсерами, применять их к каким-либо коллекциям и получать новые (при помощи функций <code>into</code> и <code>sequence</code>), применять их к коллекциям и выполнять свёртку по результату (при помощи <code>transduce</code> и <code>eduction</code>) и т.п.</p>
+<h2 id="простой-пример">Простой пример</h2>
+<p>Рассмотрим пример. Пусть у нас есть вектор векторов. В каждом внутреннем векторе чётное количество элементов. Нужно из каждого внутреннего вектора выбрать элементы, стоящие на чётных позициях, и из них выбрать максимальный.</p>
+<p>Например, на входе</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">def</span><span class="fu"> input</span>
+  [[<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">7</span>]
+   [<span class="dv">1</span> <span class="dv">0</span> <span class="dv">2</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">6</span>]
+   [<span class="dv">3</span> <span class="dv">0</span> <span class="dv">1</span> <span class="dv">3</span>]])</code></pre></div>
+<p>нужно выдать</p>
+<pre><code>[7 6 3]</code></pre>
+<p>Для начала выполним первую половину задачи: выберем элементы, стоящие на чётных позициях:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">def</span><span class="fu"> only-evens</span>
+  (<span class="kw">comp</span> (map-indexed <span class="kw">vector</span>)
+        (<span class="kw">filter</span> #(<span class="kw">odd?</span> (<span class="kw">first</span> %)))
+        (<span class="kw">map</span> #(<span class="kw">nth</span> % <span class="dv">1</span>))))</code></pre></div>
+<p>Мы создали трансдьюсер, который на каждом входном элементе выполняет следующие действия:</p>
+<ol style="list-style-type: decimal">
+<li>Запускает <code>vector</code> с текущим индексом и элементом в качестве параметров.</li>
+<li>Оставляет только те вектора, где на первой позиции стоит нечётное число (т.е. пары «индекс-элемент» из элементов на чётных позициях, индексация в Clojure происходит с нуля).</li>
+<li>Выбирает из каждого вектора второй элемент.</li>
+</ol>
+<p>Запустим наш трансдьюсер:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">into</span> [] only-evens [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">7</span>])
+<span class="co">;; =&gt; [2 4 7]</span></code></pre></div>
+<p>Работает!</p>
+<p>При этом, в отличие от такого кода:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">-&gt;&gt;</span> [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">7</span>]
+     (map-indexed <span class="kw">vector</span>)
+     (<span class="kw">filter</span> #(<span class="kw">odd?</span> (<span class="kw">first</span> %)))
+     (<span class="kw">map</span> #(<span class="kw">nth</span> % <span class="dv">1</span>)))</code></pre></div>
+<p>который на самом деле преобразуется в</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(map-indexed <span class="kw">vector</span>
+             (<span class="kw">filter</span> #(<span class="kw">odd?</span> (<span class="kw">first</span> %))
+                     (<span class="kw">map</span> #(<span class="kw">nth</span> % <span class="dv">1</span>)
+                          [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">7</span>])))</code></pre></div>
+<p>проход по исходному вектору производится только один раз, промежуточных коллекций не строится (точнее, отличие будет заметно, если во втором случае коллекции не будут ленивыми; вдаваться в эти детали можно было бы, но мне лениво).</p>
+<p>Для полноты картины укажу ещё значения, которые появлялись бы на промежуточных шагах вычисления:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">comp</span> (map-indexed <span class="kw">vector</span>)       <span class="co">;; [[0 1] [1 2] [2 3]</span>
+                                 <span class="co">;;  [3 4] [4 5] [5 7]]</span>
+      (<span class="kw">filter</span> #(<span class="kw">odd?</span> (<span class="kw">first</span> %))) <span class="co">;; [[1 2] [3 4] [5 7]]</span>
+      (<span class="kw">map</span> #(<span class="kw">nth</span> % <span class="dv">1</span>))))         <span class="co">;; [2 4 7]</span></code></pre></div>
+<p>Для того, чтобы выполнить это преобразование и затем найти максимум, можно использовать функцию <code>transduce</code>:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="bu">def</span><span class="fu"> xf</span>
+  (<span class="kw">map</span> #(transduce only-evens <span class="kw">max</span> <span class="dv">0</span> %)))</code></pre></div>
+<p>Запускаем:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">into</span> [] xf input)
+<span class="co">;; =&gt; [7 6 3]</span></code></pre></div>
+<p>Всё хорошо! Давайте всё и везде писать на трансдьюсерах!</p>
+<h1 id="некоторые-проблемы-с-трансдьюсерами">Некоторые проблемы с трансдьюсерами</h1>
+<p>Рассмотрим более сложную задачу. Пусть теперь наша последовательность — это некоторые изменения состояния, представляющего собой отображение целых чисел в натуральные. Так, в каждом элементе будет чётное количество чисел, в каждой паре первое число — ключ, а второе — значение, ассоциированное с этим ключом (либо нуль, если значение удалено). Нам нужно на каждый входной элемент выдать отображение с ключом <code>diff</code> и исходными значениями и с ключом <code>img</code> и состоянием.</p>
+<p>Например, на входе</p>
+<pre><code>(def input
+  [[1 2 3 4 5 7]
+   [1 0 2 4 5 6]
+   [3 0 1 3]])</code></pre>
+<p>нужно выдать</p>
+<pre><code>[; на первом шаге добавились ключи 1 3 5
+ {:diff [1 2 3 4 5 7], :img {1 2, 3 4, 5 7}]
+ ; удалили ключ 1, добавили 2, поменяли значение в 5
+ {:diff [1 0 2 4 5 6], :img {2 4, 3 4, 5 6}]
+ ; удалили ключ 3, добавили 1
+ {:diff [3 0 1 3]    , :img {1 3, 2 4, 5 6}]] </code></pre>
+<h2 id="попытка-решения">Попытка решения</h2>
+<p>Попробуем для начала построить вторую часть, значения в img.</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">
+
+(<span class="bu">def</span><span class="fu"> to-state1</span>
+  (<span class="kw">comp</span> (<span class="kw">map</span> #(<span class="kw">apply</span> <span class="kw">hash-map</span> %))
+        (<span class="kw">reduce</span> my-merge {})))</code></pre></div>
+<p>Запускаем:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">into</span> [] to-state1 input)
+<span class="co">; NullPointerException   clojure.core/comp/fn--4727 (core.clj:2460)</span></code></pre></div>
+<p>Упс! Попробуем стандартный вариант без трансдьюсеров, но с двумя проходами:</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">(<span class="kw">-&gt;&gt;</span> input
+     (<span class="kw">map</span> #(<span class="kw">apply</span> <span class="kw">hash-map</span> %))
+     (<span class="kw">reduce</span> my-merge {}))
+<span class="co">;; =&gt; {1 3, 5 6, 2 4}</span></code></pre></div>
+<p>Всё работает. Почему же с трансдьюсерами вылетает NPE?</p>
+<h2 id="почему-возникла-проблема">Почему возникла проблема?</h2>
+<h2 id="быстрое-и-неправильное-решение">Быстрое (и неправильное) решение</h2>
+<h2 id="правильное-решение">Правильное решение</h2>
+<h1 id="трансдьюсеры-в-haskell-или-их-отсутствие">Трансдьюсеры в Haskell (или их отсутствие)</h1>
+<h2 id="композиция-функций">Композиция функций</h2>
+<h2 id="кондуиты">Кондуиты</h2>
+<h1 id="сравнение-производительности">Сравнение производительности</h1>
+
+		<div class="info">
+		  
+		  <i><a href="../tags/fp.html">fp</a>, <a href="../tags/transducers.html">transducers</a>, <a href="../tags/clojure.html">clojure</a>, <a href="../tags/haskell.html">haskell</a></i>
+		  
+		</div>
+		
+		
+                <p><i>Мансур Зиятдинов</i></p>
+		
+		<p><i><span>27</span> декабря 2016</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2016-12-27--transducers-and-haskell.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2016-12-27--transducers-and-haskell.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+
+	</div>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                    <ul class="list-inline text-center">
+		         <li>
+                            <a href="http://vk.com/lambdasoft">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fa fa-circle fa-stack-2x"></i>
+                                    <i class="fa fa-vk fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+			    <a href="https://telegram.me/lambdakazan">
+			      <span class="fa-stack fa-lg">
+                                    <i class="fa fa-circle fa-stack-2x"></i>
+                                    <i class="fa fa-paper-plane fa-stack-1x fa-inverse"></i>
+                              </span>
+			    </a>
+                        </li>
+                    </ul>
+                    <p class="copyright text-muted">Copyright &copy; Lambda, 2015-2016. <a href="http://lambdasoft.ru/feed.xml"><img src="http://www.rssboard.org/images/rss-icon.png" /></a></p>
+		    <p class="copyright text-muted"><small>Сайт сгенерирован при помощи <a href="http://hackage.haskell.org/package/hakyll">Hakyll</a><br />
+			Сайт использует тему <a href="http://startbootstrap.com/template-overviews/clean-blog/">Clean Blog</a></small></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- jQuery -->
+    <script src="../js/jquery.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="../js/bootstrap.min.js"></script>
+
+    <!-- Highlight js -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/highlight.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/languages/haskell.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+    <!-- Custom Theme JavaScript -->
+    <script src="../js/clean-blog.min.js"></script>
+
+
+    <!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function (d, w, c) {
+        (w[c] = w[c] || []).push(function() {
+            try {
+                w.yaCounter34056415 = new Ya.Metrika({
+                    id:34056415,
+                    clickmap:true,
+                    trackLinks:true,
+                    accurateTrackBounce:true,
+                    webvisor:true
+                });
+            } catch(e) { }
+        });
+
+        var n = d.getElementsByTagName("script")[0],
+            s = d.createElement("script"),
+            f = function () { n.parentNode.insertBefore(s, n); };
+        s.type = "text/javascript";
+        s.async = true;
+        s.src = "https://mc.yandex.ru/metrika/watch.js";
+
+        if (w.opera == "[object Opera]") {
+            d.addEventListener("DOMContentLoaded", f, false);
+        } else { f(); }
+    })(document, window, "yandex_metrika_callbacks");
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/34056415" style="position:absolute; left:-9999px;" alt /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+</body>
+
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content>
+    <meta name="author" content>
+
+    <title>\ -&gt; Контест по функциональному программированию на Hackerrank</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <!-- Highlight js -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/styles/darkula.min.css">
+
+    <!-- Custom CSS -->
+    <link href="../css/clean-blog.min.css" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+    <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Lora:400,400italic,700,700italic&subset=latin,cyrillic" rel="stylesheet" type="text/css">
+    <link href="http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&subset=latin,cyrillic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Anonymous+Pro&subset=latin,cyrillic" rel="stylesheet" type="text/css">
+
+    <link rel="alternate" type="application/rss+xml" title="RSS" href="http://lambdasoft.ru/feed.xml">
+    
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header page-scroll">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+		    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="../"><img src="../images/logo-header.png" /><center>Lambda</center></a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="../index.html">Блог</a>
+                    </li>
+		    <li>
+		        <a href="../tags.html">Тэги</a>
+                    <li>
+                        <a href="../about.html">О нас</a>
+                    </li>
+                    <li>
+                        <a href="../contact.html">Контакты</a>
+                    </li>
+                </ul>
+            </div>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container -->
+    </nav>
+
+    <!-- Page Header -->
+    <!-- Set your background image for this header on the line below. -->
+    <header class="intro-header" style="background-image: url('/img/home-bg.jpg')">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                    <div class="site-heading">
+                        <h1>Контест по функциональному программированию на Hackerrank</h1>
+                        <hr class="small">
+			  
+                          <span class="subheading">Отчёт об участии</span>
+			  
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+      <div class="row">
+	<div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+	      <!-- Post Content -->
+    <article>
+        <div class="container">
+            <div class="row">
+              <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+		<p>С 25 по 28 марта на Hackerrank проходил <a href="https://www.hackerrank.com/lambda-calculi-march-2016">контест по функциональному программированию Lambda Calculi - March 2016</a>. Я в нём участвовал и расскажу немного о впечатлениях.</p>
+<!--more-->
+<p>Утром 25 марта до начала контеста я пошёл в близлежащее кафе <a href="https://vk.com/agafredo">Агафредо</a>, чтобы подкрепиться и начать конкурс там. В первые минуты после начала контеста я занимался тем, что открывал вкладки и читал задания, пытаясь при этом не пролить кофе. Олимпиадный опыт участия и проведения ACM помог, почти про все задачи были понятно, как их решать.</p>
+<h1 id="первые-впечатления">Первые впечатления</h1>
+<ul>
+<li>«Functions or Not» — Ad Hoc задача — сортируем список, проверяем, есть ли дубликаты</li>
+<li>«Compute the Perimeter of a Polygon» — простейшая геометрия, посчитать (внезапно!) периметр — тупо суммируем длины</li>
+<li>«Compute the Area of a Polygon» — простейшая геометрия, посчитать площадь — берём соседние отрезки, считаем ориентированную площадь треугольника (она же косое произведение) и суммируем</li>
+<li>«Concave Polygon» — тут я думал, что тоже простейшая геометрия, но оказалось, что она не так проста, как я думал. Об этой задаче чуть позже</li>
+<li>«Tree Manager» — задача на зипперы, нужно двигаться по дереву и менять его, выполняя команды</li>
+<li>«Fighting Armies» — тут я думал, что нужно будет писать дерево с балансировками и прочим, но выяснилось, что пакет containers разрешен, и можно взять стандартный Data.Map</li>
+<li>«Simplify the Algebraic Expressions» — нужно упростить выражение, задача на технику</li>
+</ul>
+<p>Я начал решать, и после пары ошибок компиляции понял, что стоило порешать задачи для тренировки. Решив первые три задачи, я понял, что пора бы идти на работу… Утром некоторые коллеги удивились, что я написал, что буду через час, а вроде пришёл на работу, но делаю что-то совершенно другое, сидя на диване и попивая лимонад. Увы, это помогло не слишком сильно, ни одна задача не решилась (но для некоторых был написан ввод и вывод).</p>
+<h1 id="simplify-the-algebraic-expressions">Simplify the Algebraic Expressions</h1>
+<p>Поскольку я уже успел потыкаться во все задачи кроме этой и понять, что там нужно думать, я собираюсь решить Simplify, поскольку в ней думать не нужно, а нужно аккуратно всё запрограммировать. В задаче даны арифметические выражения (с одной переменной, и делением только для чисел, причём нацело), нужно раскрыть все скобки. К сожалению, формат входа описан не слишком чётко.</p>
+<p>Беру Parsec, пишу парсер входных данных, пишу простейшее вычисление (поскольку полиномы не выше пятой степени, делаю на списках из шести элементов) и чуть более сложный вывод. Проходит один тест, на двух валится, на четвёртом выдаёт неправильный ответ. Думаю.</p>
+<p>Добавляю костыль. Перестаёт валиться на одном из тестов, выдаёт правильный ответ. Ругаю нечёткость формата входа.</p>
+<p>Думаю. Добавляю кучу скобок ко входным данных, нахожу тест, на котором программа работает неверно. Думаю. Чиню.</p>
+<p>Все тесты проходят. На часах 931 минута, или 15:31 с начала контеста.</p>
+<h1 id="concave-polygon">Concave Polygon</h1>
+<p>Очень поздним вечером я понимаю, что раз в задаче порядок обхода точек многоугольника может быть любым, и нужно ответить, является ли он выпуклым, то нужно проверять, есть ли хотя бы одна точка внутри многоугольника из остальных — тогда он вогнутый, или нет — тогда выпуклый.</p>
+<p>Пытаюсь писать, используя имеющийся код для ориентированной площади и проверяя сумму углов между внутренней точкой и парами соседних. Понимаю, что в коде куча подгона и костылей, и… переписываю всё на ray tracing.</p>
+<p>Работает, всё проходит, 1004 минуты = 16:44 с начала. Смотрю на таблицу лидеров, отмечаю соперников, которые могут меня обогнать, ложусь спать.</p>
+<h1 id="fighting-armies">Fighting Armies</h1>
+<p>Утром вижу, что <a href="https://www.hackerrank.com/mipt_vi002">mipt_vi002</a> лёг спать позже и обогнал меня. Думаю позавтракать в Агафредо и сажусь решать.</p>
+<p>В этой задаче нужно искать максимум в наборе, удалять максимум из набора, добавлять число в набор и объединять два набора.</p>
+<p>Пишу на Map. На последних тестах валится по таймауту. Переписываю на Set. На последних тестах валится по таймауту. Переписываю на IntMap (IntMap Int). На последних тестах валится по таймауту.</p>
+<p>И тут я замечаю, что в задаче сказано “вход может быть очень большим”. Беру ByteString, немного шаманю — и тесты проходят. Время 1433 минут = 23:53 с начала.</p>
+<h1 id="tree-manager">Tree Manager</h1>
+<p>Мне остаётся победить один тест. Думаю аккуратно расписать случаи. В задаче можно менять значение в узле; печатать его; переходить к левому и правому брату, родителю и сыну с указанным номером; вставлять левого и правого брата и самого левого сына; удалять текущее поддерево.</p>
+<p>Расписываю. Ничего не нахожу. Пишу случайные команды. Вижу неправильный ответ.</p>
+<p>Исправляю ошибку с переходом к родителю (у меня зиппер, т.е. левые братья записаны в списке, причём голова — брат текущей вершины, поэтому при переходе наверх надо переворачивать левых братьев).</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Tree</span> <span class="fu">=</span> <span class="dt">Tree</span> {<span class="ot"> val ::</span> <span class="dt">Val</span>,<span class="ot"> children ::</span> [<span class="dt">Tree</span>] }
+            <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>)
+
+<span class="co">-- Зиппер для дерева - это:</span>
+<span class="co">-- - родитель (если есть)</span>
+<span class="co">-- - левые братья</span>
+<span class="co">-- - текущее дерево</span>
+<span class="co">-- - правые братья</span>
+<span class="kw">data</span> <span class="dt">Hole</span> <span class="fu">=</span> <span class="dt">Hole</span> {<span class="ot"> parents ::</span> <span class="dt">Maybe</span> <span class="dt">Hole</span>
+                 ,<span class="ot"> lefts ::</span> [<span class="dt">Tree</span>]
+                 ,<span class="ot"> current ::</span> <span class="dt">Tree</span>
+                 ,<span class="ot"> rights ::</span> [<span class="dt">Tree</span>]
+                 } <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>)
+
+<span class="ot">cur ::</span> <span class="dt">Hole</span> <span class="ot">-&gt;</span> <span class="dt">Val</span>
+cur <span class="fu">=</span> val <span class="fu">.</span> current
+
+<span class="ot">changeCur ::</span> <span class="dt">Val</span> <span class="ot">-&gt;</span> <span class="dt">Hole</span> <span class="ot">-&gt;</span> <span class="dt">Hole</span>
+changeCur new (<span class="dt">Hole</span> ps ls c rs) <span class="fu">=</span>
+  <span class="dt">Hole</span> ps ls (c { val <span class="fu">=</span> new }) rs
+
+goLeft (<span class="dt">Hole</span> ps (l<span class="fu">:</span>ls) c rs) <span class="fu">=</span> <span class="dt">Hole</span> ps ls l (c<span class="fu">:</span>rs)
+goRight (<span class="dt">Hole</span> ps ls c (r<span class="fu">:</span>rs)) <span class="fu">=</span> <span class="dt">Hole</span> ps (c<span class="fu">:</span>ls) r rs
+
+<span class="co">-- ошибка: было ls ++ [c] ++ rs</span>
+goUp (<span class="dt">Hole</span> (<span class="dt">Just</span> p) ls c rs) <span class="fu">=</span>
+  p { current <span class="fu">=</span> (current p) { children <span class="fu">=</span> reverse ls<span class="fu">++</span>[c]<span class="fu">++</span> rs }}
+
+<span class="co">-- ошибка: было (take (k-1) cs)</span>
+goDown k now<span class="fu">@</span>(<span class="dt">Hole</span> p ls (<span class="dt">Tree</span> v cs) rs) <span class="fu">=</span>
+  <span class="dt">Hole</span> (<span class="dt">Just</span> now)
+       (reverse <span class="fu">$</span> take (k<span class="fu">-</span><span class="dv">1</span>) cs)
+       (cs<span class="fu">!!</span>(k<span class="fu">-</span><span class="dv">1</span>))
+       (drop k cs)
+
+insertLeft x (<span class="dt">Hole</span> p ls c rs) <span class="fu">=</span> <span class="dt">Hole</span> p (empty x <span class="fu">:</span> ls) c rs
+insertRight x (<span class="dt">Hole</span> p ls c rs) <span class="fu">=</span> <span class="dt">Hole</span> p ls c (empty x <span class="fu">:</span> rs)
+
+insertChild x (<span class="dt">Hole</span> p ls (<span class="dt">Tree</span> v cs) rs) <span class="fu">=</span>
+  <span class="dt">Hole</span> p ls (<span class="dt">Tree</span> v <span class="fu">$</span> empty x <span class="fu">:</span> cs) rs
+
+<span class="co">-- ошибка: было ls ++ rs</span>
+delete (<span class="dt">Hole</span> (<span class="dt">Just</span> p) ls c rs) <span class="fu">=</span>
+  p { current <span class="fu">=</span> (current p) { children <span class="fu">=</span> reverse ls <span class="fu">++</span> rs }}</code></pre></div>
+<p>Отправляю, тесты проходят. На часах 1464 минуты, или 24:24 с начала контеста. Смотрю таблицу — в десятке. Успокаиваюсь, иду в Агафредо завтракать.</p>
+<div class="figure">
+<img src="../images/2016-04-09-hackerrank-leaderboard.png" alt="Итоговая таблица контеста" />
+<p class="caption">Итоговая таблица контеста</p>
+</div>
+<h1 id="после-завершения">После завершения</h1>
+<p>Через несколько дней контест завершился, при этом я внезапно оказался на одно место выше (почему-то исчез тот, кто был на первом месте) — на шестом; когда же подвели окончательные итоги и посчитали рейтинг — я написал сюда. Жду футболку с Hackerrank…</p>
+
+		<div class="info">
+		  
+		  <i><a href="../tags/fp.html">fp</a>, <a href="../tags/contest.html">contest</a>, <a href="../tags/hackerrank.html">hackerrank</a>, <a href="../tags/%D0%BE%D1%82%D1%87%D1%91%D1%82.html">отчёт</a></i>
+		  
+		</div>
+		
+		
+                <p><i>Мансур Зиятдинов</i></p>
+		
+		<p><i><span> 9</span> апреля 2016</i></p>
+              </div>
+
+	      <div id="disqus_thread"></div>
+	      <script>
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+ */
+/*
+var disqus_config = function () {
+    this.page.url = "http://lambdasoft.ru/posts/2016-04-09--hackerrank-mansur.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "/posts/2016-04-09--hackerrank-mansur.html"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() {  // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//lambdakazan.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+	      </script>
+	      <noscript>Включите JavaScript для <a href="https://disqus.com/?ref_noscript" rel="nofollow">участия в дискуссии.</a></noscript>
+            </div>
+        </div>
+    </article>
+
+	</div>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                    <ul class="list-inline text-center">
+		         <li>
+                            <a href="http://vk.com/lambdasoft">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fa fa-circle fa-stack-2x"></i>
+                                    <i class="fa fa-vk fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+			    <a href="https://telegram.me/lambdakazan">
+			      <span class="fa-stack fa-lg">
+                                    <i class="fa fa-circle fa-stack-2x"></i>
+                                    <i class="fa fa-paper-plane fa-stack-1x fa-inverse"></i>
+                              </span>
+			    </a>
+                        </li>
+                    </ul>
+                    <p class="copyright text-muted">Copyright &copy; Lambda, 2015-2016. <a href="http://lambdasoft.ru/feed.xml"><img src="http://www.rssboard.org/images/rss-icon.png" /></a></p>
+		    <p class="copyright text-muted"><small>Сайт сгенерирован при помощи <a href="http://hackage.haskell.org/package/hakyll">Hakyll</a><br />
+			Сайт использует тему <a href="http://startbootstrap.com/template-overviews/clean-blog/">Clean Blog</a></small></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- jQuery -->
+    <script src="../js/jquery.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="../js/bootstrap.min.js"></script>
+
+    <!-- Highlight js -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/highlight.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/languages/haskell.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    
+    <!-- Custom Theme JavaScript -->
+    <script src="../js/clean-blog.min.js"></script>
+
+
+    <!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function (d, w, c) {
+        (w[c] = w[c] || []).push(function() {
+            try {
+                w.yaCounter34056415 = new Ya.Metrika({
+                    id:34056415,
+                    clickmap:true,
+                    trackLinks:true,
+                    accurateTrackBounce:true,
+                    webvisor:true
+                });
+            } catch(e) { }
+        });
+
+        var n = d.getElementsByTagName("script")[0],
+            s = d.createElement("script"),
+            f = function () { n.parentNode.insertBefore(s, n); };
+        s.type = "text/javascript";
+        s.async = true;
+        s.src = "https://mc.yandex.ru/metrika/watch.js";
+
+        if (w.opera == "[object Opera]") {
+            d.addEventListener("DOMContentLoaded", f, false);
+        } else { f(); }
+    })(document, window, "yandex_metrika_callbacks");
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/34056415" style="position:absolute; left:-9999px;" alt /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+</body>
+
+</html>
